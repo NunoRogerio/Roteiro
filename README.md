@@ -1,7 +1,10 @@
 # Roteiros
 
-Mini site do roteiro do Nuno para o Porto: mapa e lista por categorias, instalável em iOS e Android.
+- **App (para criar e editar):** https://nunorogerio.github.io/Roteiro/app/
+- **Link partilhado (para os amigos):** https://nunorogerio.github.io/Roteiro/?r=porto
 
-Para atualizar o roteiro, edita `roteiro.json`; quem tiver o link (ou a app instalada) vê a nova versão ao abrir.
+Cada roteiro vive em `roteiros/<cidade>.json` e as fotografias em `photos/<cidade>/`.
+A app grava aqui através de uma chave do GitHub com acesso só a este repositório.
+O link lê sempre a versão mais recente.
 
-Mapa: © OpenStreetMap, © CARTO. Biblioteca de mapa: Leaflet.
+Mapa: © OpenStreetMap, © CARTO. Pesquisa de sítios: OpenStreetMap Nominatim. Biblioteca de mapa: Leaflet.

@@ -171,6 +171,17 @@ button{cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function () {
+  const SLUG = (new URLSearchParams(location.search).get('r') || 'porto').replace(/[^a-z0-9-]/gi, '');
+  (function manifest() {
+    const base = new URL('./', location.href).href;
+    const m = { name: 'Roteiro', short_name: 'Roteiro', lang: 'pt', start_url: base + '?r=' + SLUG, scope: base, display: 'standalone',
+      background_color: '#F4F2EE', theme_color: '#F4F2EE',
+      icons: [{src: base + 'icons/icon-192.png', sizes: '192x192', type: 'image/png'}, {src: base + 'icons/icon-512.png', sizes: '512x512', type: 'image/png'}, {src: base + 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable'}] };
+    window.__setManifest = (name, short) => { m.name = name; m.short_name = short;
+      document.querySelector('link[rel=manifest]').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
+      document.querySelector('meta[name=apple-mobile-web-app-title]').content = short; };
+    window.__setManifest('Roteiro', 'Roteiro');
+  })();
   const ICONS = {
     comer: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.7 0-3 2-3 5v4h3v9"/>',
     visitar: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
@@ -212,7 +223,7 @@ button{cursor:pointer}
     const p = m.place;
     L.popup({ closeButton: false, autoPanPadding: [16, 16], offset: [0, -8], className: 'tip' })
       .setLatLng(m.getLatLng())
-      .setContent('<div class="tip-name">' + esc(p.name) + '</div>' + (p.note ? '<div class="tip-note">' + esc(p.note) + '</div>' : '') + tagsHtml(cat, p.tags))
+      .setContent('<div class="tip-name">' + esc(p.name) + '</div>' + (p.address ? '<div class="tip-note">' + esc(p.address) + '</div>' : '') + tagsHtml(cat, p.tags))
       .openOn(map);
     if (fly) map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.8 });
   }
@@ -249,6 +260,7 @@ button{cursor:pointer}
     document.getElementById('city').textContent = data.city;
     document.getElementById('desc').textContent = (data.description ? data.description + ' ' : '') + 'Sempre atualizado.';
     document.title = 'Roteiro do ' + data.owner + '. ' + data.city;
+    window.__setManifest(document.title, data.city + ' do ' + data.owner);
 
     Object.values(markers).forEach(m => m.remove());
     markers = {};
@@ -278,8 +290,8 @@ button{cursor:pointer}
       const items = data.places.filter(p => p.category === c.id);
       return '<section><h2 class="title-s sec-title"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</h2><div class="cards">' +
         items.map(p => '<button class="card press" data-id="' + p.id + '">' +
-          (p.photo ? '<div class="card-photo" style="background-image:url(\'' + encodeURI(p.photo) + '\')"></div>' : '') +
-          '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.note ? '<span class="annot">' + esc(p.note) + '</span>' : '') + tagsHtml(c, p.tags) + '</div></button>').join('') +
+          (p.photos && p.photos[0] ? '<div class="card-photo" style="background-image:url(\'' + encodeURI(p.photos[0]) + '\')"></div>' : '') +
+          '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.address ? '<span class="annot">' + esc(p.address) + '</span>' : '') + (p.note ? '<p class="text" style="margin:8px 0 0">' + esc(p.note) + '</p>' : '') + tagsHtml(c, p.tags) + '</div></button>').join('') +
         '</div></section>';
     }).join('') : '<p class="annot empty">O ' + esc(data.owner) + ' ainda está a juntar os primeiros sítios.</p>';
     sections.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
@@ -293,7 +305,8 @@ button{cursor:pointer}
   /* ---------- live data ---------- */
   async function load(first) {
     try {
-      const r = await fetch('roteiro.json?t=' + Date.now(), { cache: 'no-store' });
+      let r = await fetch('roteiros/' + encodeURIComponent(SLUG) + '.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok && SLUG === 'porto') r = await fetch('roteiro.json?t=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) throw new Error(r.status);
       const txt = await r.text();
       if (txt === lastJson) return;

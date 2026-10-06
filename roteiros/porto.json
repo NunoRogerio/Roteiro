@@ -1,0 +1,108 @@
+{
+  "owner": "Nuno",
+  "city": "Porto",
+  "description": "Os sítios que recomendo a quem passa pela cidade.",
+  "center": [
+    41.15,
+    -8.628
+  ],
+  "zoom": 13,
+  "categories": [
+    {
+      "id": "comer",
+      "name": "Comer",
+      "color": "#C8562B",
+      "tint": "#F8E7DF",
+      "ink": "#9E3F1C"
+    },
+    {
+      "id": "visitar",
+      "name": "Visitar",
+      "color": "#1D7F86",
+      "tint": "#DDF0F1",
+      "ink": "#145E63"
+    },
+    {
+      "id": "cultura",
+      "name": "Cultura",
+      "color": "#2F8A5B",
+      "tint": "#E0F1E7",
+      "ink": "#1F6641"
+    },
+    {
+      "id": "musica",
+      "name": "Música",
+      "color": "#7A4BB0",
+      "tint": "#EEE6F7",
+      "ink": "#5B3488"
+    },
+    {
+      "id": "noite",
+      "name": "Noite",
+      "color": "#333A73",
+      "tint": "#E4E6F3",
+      "ink": "#2A3062"
+    }
+  ],
+  "places": [
+    {
+      "id": "majestic",
+      "name": "Café Majestic",
+      "category": "comer",
+      "tags": [
+        "Lanche",
+        "Cafezinho"
+      ],
+      "lat": 41.1468,
+      "lng": -8.6067,
+      "address": "Rua de Santa Catarina.",
+      "note": "",
+      "photos": []
+    },
+    {
+      "id": "ribeira",
+      "name": "Ribeira",
+      "category": "visitar",
+      "tags": [],
+      "lat": 41.1405,
+      "lng": -8.6131,
+      "address": "Junto ao Douro e à Ponte Luís I.",
+      "note": "",
+      "photos": []
+    },
+    {
+      "id": "serralves",
+      "name": "Serralves",
+      "category": "cultura",
+      "tags": [],
+      "lat": 41.1597,
+      "lng": -8.6597,
+      "address": "Museu e parque.",
+      "note": "",
+      "photos": []
+    },
+    {
+      "id": "casa-da-musica",
+      "name": "Casa da Música",
+      "category": "musica",
+      "tags": [],
+      "lat": 41.1588,
+      "lng": -8.6307,
+      "address": "Concertos. Boavista.",
+      "note": "",
+      "photos": []
+    },
+    {
+      "id": "galerias-de-paris",
+      "name": "Galerias de Paris",
+      "category": "noite",
+      "tags": [],
+      "lat": 41.1475,
+      "lng": -8.6145,
+      "address": "Bares. Baixa.",
+      "note": "",
+      "photos": []
+    }
+  ],
+  "slug": "porto"
+}

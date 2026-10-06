@@ -254,11 +254,16 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
   <div class="sheet-body">
     <h2 class="title-m">Definições</h2>
     <label class="field"><span class="label">O teu nome</span><span class="input"><input id="nameEdit" type="text"></span></label>
-    <p class="annot" style="margin-top:8px">Aparece nos teus roteiros como "Roteiro do Nuno".</p>
+    <p class="annot" style="margin-top:8px">Aparece nos teus roteiros como "Por Nuno".</p>
     <div style="margin-top:24px;display:flex;gap:16px">
       <button class="btn remove press" id="disconnect">Desligar</button>
       <button class="btn primary press" id="saveName">Guardar</button>
     </div>
+    <h2 class="title-m" style="margin-top:56px">Convidar</h2>
+    <p class="text sub">Cria uma chave só para essa pessoa e cola-a aqui. O link abre a app já ligada.</p>
+    <label class="field"><span class="label">Nome</span><span class="input"><input id="invName" type="text" placeholder="Susana"></span></label>
+    <label class="field"><span class="label">Chave</span><span class="input"><input id="invKey" type="password" autocomplete="off" placeholder="github_pat_…"></span></label>
+    <div style="margin-top:24px;display:flex;gap:16px"><button class="btn primary press" id="invBtn" disabled>Enviar convite</button></div>
   </div>
 </div>
 
@@ -662,7 +667,7 @@ function rtTiles(opts) {
     $('copyBtn').textContent = '✓ Copiado';
   }
   $('copyBtn').onclick = copy; $('copyIcon').onclick = copy;
-  $('sendBtn').onclick = () => navigator.share({ title: 'Roteiro do ' + current.data.owner + '. ' + current.data.city, url: shareUrl(current.slug) }).catch(() => {});
+  $('sendBtn').onclick = () => navigator.share({ title: current.data.city + ', por ' + current.data.owner, url: shareUrl(current.slug) }).catch(() => {});
 
   /* ---------- sheets ---------- */
   function openSheet(id) { closeSheets(true); $('overlay').classList.add('open'); $(id).classList.add('open'); }
@@ -676,8 +681,39 @@ function rtTiles(opts) {
     top.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - (y0 || 0); y0 = null; sheet.style.transition = ''; sheet.style.transform = ''; if (dy > 80) closeSheets(); });
   });
 
+  /* ---------- invite ---------- */
+  const invValid = () => { $('invBtn').disabled = !($('invName').value.trim() && $('invKey').value.trim()); };
+  $('invName').oninput = invValid; $('invKey').oninput = invValid;
+  $('invBtn').onclick = async () => {
+    const n = $('invName').value.trim(), k = $('invKey').value.trim();
+    const url = new URL('./', location.href).href + '#chave=' + encodeURIComponent(k) + '&nome=' + encodeURIComponent(n);
+    const text = 'Olá ' + n + '! Abre este link no Safari e instala a app Roteiros (Partilhar e depois Adicionar ao ecrã principal). Não reencaminhes, porque tem a tua chave.';
+    if (navigator.share) { try { await navigator.share({ title: 'Roteiros', text, url }); } catch (e) {} }
+    else { try { await navigator.clipboard.writeText(text + ' ' + url); toast('Convite copiado.'); } catch (e) {} }
+  };
+
   /* ---------- start ---------- */
-  if (token) openHome(); else show('setup');
+  (async function start() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const k = h.get('chave'), n = h.get('nome');
+    if (k) {
+      history.replaceState(null, '', location.pathname + location.search);
+      token = k;
+      try {
+        const repo = await gh('');
+        if (!repo || !repo.permissions || !repo.permissions.push) throw new Error('perm');
+        store.set('roteiros-token', k);
+        if (n) { owner = n; store.set('roteiros-name', n); }
+        if (!owner) { show('setup'); $('tokenIn').value = k; return; }
+        openHome(); toast('Olá, ' + owner + '.');
+      } catch (e) {
+        token = null; show('setup');
+        $('setupErr').textContent = 'Este convite já não é válido. Pede um novo.'; $('setupErr').hidden = false;
+      }
+      return;
+    }
+    if (token) openHome(); else show('setup');
+  })();
 })();
 </script>
 </body>

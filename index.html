@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Roteiro do Nuno. Porto</title>
+<title>Porto, por Nuno</title>
 <meta name="description" content="Os sítios que o Nuno recomenda no Porto.">
 <meta name="theme-color" content="#F4F2EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -137,7 +137,7 @@ button{cursor:pointer}
     <button class="pill press" id="installBtn">Instalar</button>
   </div>
 
-  <p class="annot" style="margin:0" id="owner">Roteiro do Nuno</p>
+  <p class="annot" style="margin:0" id="owner">Por Nuno</p>
   <h1 class="title-m lead" id="city">Porto</h1>
   <p class="text lead" id="desc">Os sítios que recomendo a quem passa pela cidade. Sempre atualizado.</p>
 
@@ -264,11 +264,11 @@ button{cursor:pointer}
 
   /* ---------- render ---------- */
   function render() {
-    document.getElementById('owner').textContent = 'Roteiro do ' + data.owner;
+    document.getElementById('owner').textContent = 'Por ' + data.owner;
     document.getElementById('city').textContent = data.city;
     document.getElementById('desc').textContent = (data.description ? data.description + ' ' : '') + 'Sempre atualizado.';
-    document.title = 'Roteiro do ' + data.owner + '. ' + data.city;
-    window.__setManifest(document.title, data.city + ' do ' + data.owner);
+    document.title = data.city + ', por ' + data.owner;
+    window.__setManifest(document.title, data.city);
 
     Object.values(markers).forEach(m => m.remove());
     markers = {};
@@ -301,7 +301,7 @@ button{cursor:pointer}
           (p.photos && p.photos[0] ? '<div class="card-photo" style="background-image:url(\'' + encodeURI(p.photos[0]) + '\')"></div>' : '') +
           '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.address ? '<span class="annot">' + esc(p.address) + '</span>' : '') + (p.note ? '<p class="text" style="margin:8px 0 0">' + esc(p.note) + '</p>' : '') + tagsHtml(c, p.tags) + '</div></button>').join('') +
         '</div></section>';
-    }).join('') : '<p class="annot empty">O ' + esc(data.owner) + ' ainda está a juntar os primeiros sítios.</p>';
+    }).join('') : '<p class="annot empty">Ainda sem sítios. Volta mais tarde.</p>';
     sections.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
       const p = data.places.find(x => x.id === b.dataset.id);
       if (hidden.has(p.category)) { hidden.delete(p.category); render(); }

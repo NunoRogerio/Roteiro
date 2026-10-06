@@ -1,0 +1,21 @@
+{
+  "owner": "Nuno",
+  "city": "Porto",
+  "description": "Os sítios que recomendo a quem passa pela cidade.",
+  "center": [41.1500, -8.6280],
+  "zoom": 13,
+  "categories": [
+    {"id": "comer", "name": "Comer", "color": "#C8562B", "tint": "#F8E7DF", "ink": "#9E3F1C"},
+    {"id": "visitar", "name": "Visitar", "color": "#1D7F86", "tint": "#DDF0F1", "ink": "#145E63"},
+    {"id": "cultura", "name": "Cultura", "color": "#2F8A5B", "tint": "#E0F1E7", "ink": "#1F6641"},
+    {"id": "musica", "name": "Música", "color": "#7A4BB0", "tint": "#EEE6F7", "ink": "#5B3488"},
+    {"id": "noite", "name": "Noite", "color": "#333A73", "tint": "#E4E6F3", "ink": "#2A3062"}
+  ],
+  "places": [
+    {"id": "majestic", "name": "Café Majestic", "category": "comer", "tags": ["Lanche", "Cafezinho"], "note": "Rua de Santa Catarina.", "lat": 41.1468, "lng": -8.6067},
+    {"id": "ribeira", "name": "Ribeira", "category": "visitar", "tags": [], "note": "Junto ao Douro e à Ponte Luís I.", "lat": 41.1405, "lng": -8.6131},
+    {"id": "serralves", "name": "Serralves", "category": "cultura", "tags": [], "note": "Museu e parque.", "lat": 41.1597, "lng": -8.6597},
+    {"id": "casa-da-musica", "name": "Casa da Música", "category": "musica", "tags": [], "note": "Concertos. Boavista.", "lat": 41.1588, "lng": -8.6307},
+    {"id": "galerias-de-paris", "name": "Galerias de Paris", "category": "noite", "tags": [], "note": "Bares. Baixa.", "lat": 41.1475, "lng": -8.6145}
+  ]
+}

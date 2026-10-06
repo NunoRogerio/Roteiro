@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roteiro do Nuno. Porto</title>
+<meta name="description" content="Os sítios que o Nuno recomenda no Porto.">
+<meta name="theme-color" content="#F4F2EE">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Porto do Nuno">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#F4F2EE; --surface:#FFFFFF; --ink:#23262B; --grey:#5F6670; --line:#E4E1DB;
+  --primary:#1F4FA3; --subtle:#E6ECF7; --map:#E9E6DF;
+  --shadow:0 0 16px rgba(35,38,43,0.08);
+  --glass:rgba(255,255,255,0.72);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,system-ui,sans-serif;
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{-webkit-user-select:none;user-select:none;min-height:100vh}
+button,a{font-family:inherit}
+button{cursor:pointer}
+.page{max-width:560px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))}
+
+/* text styles: 26 / 17 / 16 / 13 */
+.title-m{margin:0;font-size:26px;font-weight:600;line-height:32px}
+.title-s{font-size:17px;font-weight:700;line-height:22px}
+.text{font-size:17px;line-height:24px}
+.annot{font-size:16px;line-height:22px;color:var(--grey)}
+
+/* touch feedback */
+.press{transition:transform .18s ease}
+.press:active{transform:scale(.97)}
+
+/* install card */
+.install{display:none;flex-direction:column;gap:24px;padding:16px;background:var(--surface);border-radius:20px;box-shadow:var(--shadow);margin-bottom:40px;
+  transition:opacity .4s ease,transform .4s ease}
+.install.show{display:flex}
+.install-row{display:flex;align-items:center;gap:16px}
+.install .pill{width:100%;height:48px;border-radius:24px;font-size:17px}
+.install.leaving{opacity:0;transform:translateY(-8px)}
+.app-icon{width:48px;height:48px;border-radius:12px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.install-text{flex-grow:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.pill{height:36px;padding:0 16px;border:none;border-radius:18px;background:var(--primary);color:#fff;font-size:16px;font-weight:600;flex-shrink:0}
+.round-x{width:44px;height:44px;margin:-8px -8px -8px 0;align-self:flex-start;border:none;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.round-x svg{transition:transform .5s ease}
+.round-x:active svg{transform:rotate(90deg)}
+
+/* header */
+.lead{margin:4px 0 0}
+
+/* map */
+.map-wrap{position:relative;margin-top:24px;height:280px;border-radius:20px;overflow:hidden;background:var(--map);box-shadow:var(--shadow);
+  transition:border-radius .35s ease}
+#map{position:absolute;inset:0;background:var(--map)}
+.map-wrap.full{position:fixed;inset:0;height:auto;margin:0;border-radius:0;z-index:50}
+.legend{position:absolute;left:8px;right:8px;top:8px;z-index:500;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none}
+.map-wrap.full .legend{top:calc(16px + env(safe-area-inset-top));left:16px;right:16px}
+.chip{pointer-events:auto;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px 0 8px;border:none;border-radius:16px;
+  background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-size:13px;color:var(--ink);box-shadow:var(--shadow)}
+.chip .dot{width:16px;height:16px;border-radius:50%}
+.chip.off{background:rgba(236,233,227,0.78)}
+.chip.off .dot{background:rgba(95,102,112,0.2)!important}
+.exit{display:none;position:absolute;right:16px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:500;width:44px;height:44px;border-radius:50%;border:none;
+  background:rgba(35,38,43,0.78);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);align-items:center;justify-content:center}
+.map-wrap.full .exit{display:flex}
+.leaflet-container{font-family:inherit}
+.leaflet-control-attribution{font-size:11px;background:rgba(255,255,255,0.7)!important}
+.leaflet-control-zoom{display:none}
+
+/* markers */
+.mk{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-sizing:content-box;border:0 solid var(--ink);
+  transition:border-width .2s ease;margin:-4px}
+.mk.sel{border-width:4px;margin:-8px}
+
+/* tooltip */
+.leaflet-popup-content-wrapper{border-radius:20px;box-shadow:0 0 16px rgba(35,38,43,0.16);padding:0}
+.leaflet-popup-content{margin:16px;text-align:center;min-width:160px}
+.leaflet-popup-tip-container{display:none}
+.leaflet-popup-close-button{display:none}
+.leaflet-popup{margin-bottom:24px;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tip-name{font-size:17px;font-weight:700;line-height:22px;color:var(--ink)}
+.tip-note{margin-top:4px;font-size:16px;line-height:22px;color:var(--grey)}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tip .tags{justify-content:center;margin-top:8px}
+.tag{height:28px;padding:0 12px;border-radius:14px;font-size:13px;font-weight:600;display:flex;align-items:center}
+
+/* sections */
+.sections{margin-top:56px;display:flex;flex-direction:column;gap:56px}
+.sec-title{margin:0 0 16px;display:flex;align-items:center;gap:8px}
+.sec-title .dot{width:16px;height:16px;border-radius:50%}
+.cards{display:flex;flex-direction:column;gap:8px}
+.card{display:block;width:100%;text-align:left;border:none;padding:0;background:var(--surface);border-radius:16px;overflow:hidden;color:inherit;box-shadow:var(--shadow)}
+.card-photo{height:160px;background:var(--line) center/cover no-repeat}
+.card-body{padding:16px;display:flex;flex-direction:column;gap:4px}
+.card .tags{margin-top:8px}
+.empty{margin-top:56px}
+.foot{margin:56px 0 0;font-size:13px;line-height:18px;color:var(--grey);text-align:center}
+
+/* iOS install sheet */
+.overlay{position:fixed;inset:0;z-index:900;background:rgba(35,38,43,0.32);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .35s ease}
+.overlay.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:901;max-width:560px;margin:0 auto;background:var(--surface);border-radius:28px 28px 0 0;
+  box-shadow:0 0 24px rgba(35,38,43,0.18);padding:12px 24px calc(48px + env(safe-area-inset-bottom));transform:translateY(105%);
+  transition:transform .45s cubic-bezier(.45,0,.2,1)}
+.sheet.open{transform:none}
+.grabber{display:block;margin:0 auto;width:86px;height:3px;border-radius:2px;background:rgba(35,38,43,0.2);border:none;padding:0;position:relative}
+.grabber::after{content:"";position:absolute;inset:-16px -40px}
+.steps{margin-top:32px;display:flex;flex-direction:column;gap:24px}
+.step{display:flex;align-items:center;gap:16px}
+.step-icon{width:44px;height:44px;border-radius:50%;background:var(--subtle);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-text{display:flex;flex-direction:column;gap:4px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="install" id="install">
+    <div class="install-row">
+    <span class="app-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span>
+    <span class="install-text">
+      <span class="title-s">Instalar o roteiro</span>
+      <span class="annot">Fica no ecrã principal, como uma app.</span>
+    </span>
+    <button class="round-x" id="installClose" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <button class="pill press" id="installBtn">Instalar</button>
+  </div>
+
+  <p class="annot" style="margin:0" id="owner">Roteiro do Nuno</p>
+  <h1 class="title-m lead" id="city">Porto</h1>
+  <p class="text lead" id="desc">Os sítios que recomendo a quem passa pela cidade. Sempre atualizado.</p>
+
+  <div class="map-wrap" id="mapWrap">
+    <div id="map"></div>
+    <div class="legend" id="legend"></div>
+    <button class="exit" id="exitFull" aria-label="Sair do ecrã inteiro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4F2EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10l7-7M14 10V4M14 10h6M10 14l-7 7M10 14v6M10 14H4"/></svg></button>
+  </div>
+
+  <div class="sections" id="sections"></div>
+  <p class="foot">Feito com Roteiros.</p>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetTitle">
+  <button class="grabber" id="grabber" aria-label="Fechar"></button>
+  <h2 class="title-m" id="sheetTitle" style="margin-top:24px">Instalar o roteiro</h2>
+  <p class="text lead">No iPhone, a instalação faz-se no Safari, em dois passos.</p>
+  <div class="steps">
+    <div class="step">
+      <span class="step-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F4FA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>
+      <span class="step-text"><span class="title-s">1. Toca em Partilhar</span><span class="annot">Na barra do Safari.</span></span>
+    </div>
+    <div class="step">
+      <span class="step-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F4FA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>
+      <span class="step-text"><span class="title-s">2. Adicionar ao ecrã principal</span><span class="annot">O roteiro fica com ícone próprio e atualiza sozinho.</span></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  const ICONS = {
+    comer: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.7 0-3 2-3 5v4h3v9"/>',
+    visitar: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+    cultura: '<path d="M3 9l9-5 9 5M5 9v9M10 9v9M14 9v9M19 9v9M3 20h18"/>',
+    musica: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    noite: '<path d="M5 4h14l-7 8zM12 12v8M8 20h8"/>'
+  };
+  const icon = (id, size) => '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[id] || ICONS.visitar) + '</svg>';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  /* ---------- map ---------- */
+  const wrap = document.getElementById('mapWrap');
+  const map = L.map('map', { zoomControl: false, attributionControl: true, inertia: true, inertiaDeceleration: 2600, worldCopyJump: false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
+
+  let data = null, markers = {}, selected = null, hidden = new Set(), lastJson = '';
+
+  function markerIcon(cat, sel) {
+    return L.divIcon({ className: '', iconSize: [32, 32], iconAnchor: [16, 16],
+      html: '<div class="mk' + (sel ? ' sel' : '') + '" style="background:' + cat.color + '">' + icon(cat.id, 16) + '</div>' });
+  }
+  const catOf = id => data.categories.find(c => c.id === id) || data.categories[0];
+  const tagsHtml = (cat, tags) => (tags && tags.length) ? '<div class="tags">' + tags.map(t => '<span class="tag" style="background:' + cat.tint + ';color:' + cat.ink + '">' + esc(t) + '</span>').join('') + '</div>' : '';
+
+  function select(id, fly) {
+    if (selected && markers[selected]) markers[selected].setIcon(markerIcon(catOf(markers[selected].place.category), false));
+    selected = id;
+    const m = markers[id]; if (!m) return;
+    const cat = catOf(m.place.category);
+    m.setIcon(markerIcon(cat, true));
+    m.setZIndexOffset(1000);
+    const p = m.place;
+    L.popup({ closeButton: false, autoPanPadding: [16, 16], offset: [0, -8], className: 'tip' })
+      .setLatLng(m.getLatLng())
+      .setContent('<div class="tip-name">' + esc(p.name) + '</div>' + (p.note ? '<div class="tip-note">' + esc(p.note) + '</div>' : '') + tagsHtml(cat, p.tags))
+      .openOn(map);
+    if (fly) map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.8 });
+  }
+  function deselect() {
+    if (selected && markers[selected]) { markers[selected].setIcon(markerIcon(catOf(markers[selected].place.category), false)); markers[selected].setZIndexOffset(0); }
+    selected = null;
+  }
+  map.on('popupclose', deselect);
+
+  map.on('click', function () {
+    if (selected) { map.closePopup(); return; }
+    if (!wrap.classList.contains('full')) setFull(true);
+  });
+  function setFull(on) {
+    wrap.classList.toggle('full', on);
+    document.body.style.overflow = on ? 'hidden' : '';
+    setTimeout(() => map.invalidateSize({ pan: false }), 360);
+  }
+  document.getElementById('exitFull').addEventListener('click', e => { e.stopPropagation(); setFull(false); });
+  window.addEventListener('orientationchange', () => setTimeout(() => {
+    const landscape = window.matchMedia('(orientation: landscape)').matches && window.innerHeight < 500;
+    setFull(landscape || wrap.classList.contains('full') && landscape);
+  }, 300));
+
+  function fitAll() {
+    const pts = data.places.filter(p => !hidden.has(p.category)).map(p => [p.lat, p.lng]);
+    if (pts.length) map.fitBounds(pts, { padding: [48, 48], maxZoom: 15 });
+    else map.setView(data.center, data.zoom);
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    document.getElementById('owner').textContent = 'Roteiro do ' + data.owner;
+    document.getElementById('city').textContent = data.city;
+    document.getElementById('desc').textContent = (data.description ? data.description + ' ' : '') + 'Sempre atualizado.';
+    document.title = 'Roteiro do ' + data.owner + '. ' + data.city;
+
+    Object.values(markers).forEach(m => m.remove());
+    markers = {};
+    data.places.forEach(p => {
+      const cat = catOf(p.category);
+      const m = L.marker([p.lat, p.lng], { icon: markerIcon(cat, p.id === selected), keyboard: false });
+      m.place = p;
+      m.on('click', e => { L.DomEvent.stopPropagation(e); selected === p.id ? map.closePopup() : select(p.id, false); });
+      if (!hidden.has(p.category)) m.addTo(map);
+      markers[p.id] = m;
+    });
+
+    const used = data.categories.filter(c => data.places.some(p => p.category === c.id));
+    const legend = document.getElementById('legend');
+    legend.innerHTML = used.map(c => '<button class="chip press' + (hidden.has(c.id) ? ' off' : '') + '" data-cat="' + c.id + '"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</button>').join('');
+    legend.querySelectorAll('.chip').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = b.dataset.cat;
+      if (hidden.has(id)) hidden.delete(id);
+      else { if (used.length - hidden.size <= 1) return; hidden.add(id); }
+      map.closePopup();
+      render();
+    }));
+
+    const sections = document.getElementById('sections');
+    sections.innerHTML = used.length ? used.map(c => {
+      const items = data.places.filter(p => p.category === c.id);
+      return '<section><h2 class="title-s sec-title"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</h2><div class="cards">' +
+        items.map(p => '<button class="card press" data-id="' + p.id + '">' +
+          (p.photo ? '<div class="card-photo" style="background-image:url(\'' + encodeURI(p.photo) + '\')"></div>' : '') +
+          '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.note ? '<span class="annot">' + esc(p.note) + '</span>' : '') + tagsHtml(c, p.tags) + '</div></button>').join('') +
+        '</div></section>';
+    }).join('') : '<p class="annot empty">O ' + esc(data.owner) + ' ainda está a juntar os primeiros sítios.</p>';
+    sections.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
+      const p = data.places.find(x => x.id === b.dataset.id);
+      if (hidden.has(p.category)) { hidden.delete(p.category); render(); }
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => select(p.id, true), 350);
+    }));
+  }
+
+  /* ---------- live data ---------- */
+  async function load(first) {
+    try {
+      const r = await fetch('roteiro.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw new Error(r.status);
+      const txt = await r.text();
+      if (txt === lastJson) return;
+      lastJson = txt;
+      data = JSON.parse(txt);
+      render();
+      if (first) fitAll();
+    } catch (e) {
+      if (first && !data) document.getElementById('sections').innerHTML = '<p class="annot empty">Não foi possível carregar o roteiro. Volta a tentar quando tiveres rede.</p>';
+    }
+  }
+  load(true);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(false); });
+  setInterval(() => { if (document.visibilityState === 'visible') load(false); }, 120000);
+
+  /* ---------- install ---------- */
+  const card = document.getElementById('install');
+  const ua = navigator.userAgent;
+  const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const dismissed = store.get('roteiros-install-dismissed') === '1';
+  let deferred = null;
+
+  function hideCard(remember) {
+    if (remember) store.set('roteiros-install-dismissed', '1');
+    card.classList.add('leaving');
+    setTimeout(() => card.classList.remove('show', 'leaving'), 400);
+  }
+  if (!standalone && !dismissed && isIOS) card.classList.add('show');
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferred = e;
+    if (!standalone && !dismissed) card.classList.add('show');
+  });
+  window.addEventListener('appinstalled', () => hideCard(true));
+
+  const overlay = document.getElementById('overlay'), sheet = document.getElementById('sheet');
+  const openSheet = () => { overlay.classList.add('open'); sheet.classList.add('open'); };
+  const closeSheet = () => { overlay.classList.remove('open'); sheet.classList.remove('open'); };
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (deferred) {
+      deferred.prompt();
+      const choice = await deferred.userChoice;
+      deferred = null;
+      if (choice.outcome === 'accepted') hideCard(true);
+    } else if (isIOS) openSheet();
+  });
+  document.getElementById('installClose').addEventListener('click', () => hideCard(true));
+  overlay.addEventListener('click', closeSheet);
+  document.getElementById('grabber').addEventListener('click', closeSheet);
+  let y0 = null;
+  sheet.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
+  sheet.addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    const dy = Math.max(0, e.touches[0].clientY - y0);
+    sheet.style.transition = 'none'; sheet.style.transform = 'translateY(' + dy + 'px)';
+  }, { passive: true });
+  sheet.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - (y0 || 0); y0 = null;
+    sheet.style.transition = ''; sheet.style.transform = '';
+    if (dy > 80) closeSheet();
+  });
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

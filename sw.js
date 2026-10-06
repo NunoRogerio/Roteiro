@@ -1,5 +1,5 @@
 // Network first: the roteiro is always the live version; the cache is only for when there is no network.
-const CACHE = 'roteiros-v1';
+const CACHE = 'roteiros-v2';
 const SHELL = ['./', 'index.html', 'roteiro.json', 'manifest.json', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => {

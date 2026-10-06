@@ -197,12 +197,20 @@ button{cursor:pointer}
   };
 
   /* ---------- map ---------- */
+  /* Map tiles (Oct 6): MapTiler, with the same key as Fire Watch (its own key on this phone, wf-mt-key, else the shared one).
+     CARTO now stamps "API key required" on its free tiles. The light look first; Streets if that look fails to load. */
+  function rtTiles(opts) {
+    let k = ''; try { k = localStorage.getItem('wf-mt-key') || ''; } catch (e) {}
+    k = encodeURIComponent(k || 'nXogmRs94P1OvRDMdUN6');
+    const u = (st) => 'https://api.maptiler.com/maps/' + st + '/256/{z}/{x}/{y}.png?key=' + k;
+    const t = L.tileLayer(u('dataviz-light'), Object.assign({ maxZoom: 19,
+      attribution: '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }, opts || {}));
+    let fell = false; t.on('tileerror', () => { if (!fell) { fell = true; t.setUrl(u('streets-v2')); } });
+    return t;
+  }
   const wrap = document.getElementById('mapWrap');
   const map = L.map('map', { zoomControl: false, attributionControl: true, inertia: true, inertiaDeceleration: 2600, worldCopyJump: false });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, subdomains: 'abcd',
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'
-  }).addTo(map);
+  rtTiles().addTo(map);
 
   let data = null, markers = {}, selected = null, hidden = new Set(), lastJson = '';
 

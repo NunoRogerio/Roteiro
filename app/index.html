@@ -266,6 +266,19 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
+/* Map tiles (Oct 6): MapTiler, with the same key as Fire Watch (its own key on this phone, wf-mt-key, else the shared one).
+   CARTO now stamps "API key required" on its free tiles. The light look first; Streets if that look fails to load. */
+function rtTiles(opts) {
+  let k = ''; try { k = localStorage.getItem('wf-mt-key') || ''; } catch (e) {}
+  k = encodeURIComponent(k || 'nXogmRs94P1OvRDMdUN6');
+  const u = (st) => 'https://api.maptiler.com/maps/' + st + '/256/{z}/{x}/{y}.png?key=' + k;
+  const t = L.tileLayer(u('dataviz-light'), Object.assign({ maxZoom: 19,
+    attribution: '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }, opts || {}));
+  let fell = false; t.on('tileerror', () => { if (!fell) { fell = true; t.setUrl(u('streets-v2')); } });
+  return t;
+}
+</script>
+<script>
 (function () {
   const REPO = 'NunoRogerio/Roteiro', BRANCH = 'main';
   const SITE = 'https://nunorogerio.github.io/Roteiro/';
@@ -435,8 +448,7 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
   function ensureMap() {
     if (map) return;
     map = L.map('map', { zoomControl: false, inertia: true, inertiaDeceleration: 2600 });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd',
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>' }).addTo(map);
+    rtTiles().addTo(map);
     map.on('click', () => { if (selected) { map.closePopup(); return; } if (!wrap.classList.contains('full')) setFull(true); });
     map.on('popupclose', () => { if (selected && markers[selected]) markers[selected].setIcon(markerIcon(cat(markers[selected].place.category), false)); selected = null; });
   }
@@ -547,7 +559,7 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
     setTimeout(() => {
       if (!miniMap) {
         miniMap = L.map('miniMap', { zoomControl: false, attributionControl: false });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(miniMap);
+        rtTiles().addTo(miniMap);
         miniMap.on('click', e => { setPin(e.latlng.lat, e.latlng.lng, false); if (!draft.address) reverse(e.latlng.lat, e.latlng.lng); });
       }
       miniMap.invalidateSize();

@@ -102,7 +102,24 @@
       "address": "Bares. Baixa.",
       "note": "",
       "photos": []
+    },
+    {
+      "id": "mux85ocquqg2",
+      "name": "Casa Expresso",
+      "category": "comer",
+      "tags": [
+        "Pequeno-almoço",
+        "Almoço"
+      ],
+      "note": "Cafe expresso ",
+      "address": "Rua das Oliveiras. Zona Histórica do Porto.",
+      "lat": 41.1487206,
+      "lng": -8.6153341,
+      "photos": [
+        "photos/porto/mux85ocquqg2-mux86kpi74q2.jpg"
+      ]
     }
   ],
-  "slug": "porto"
+  "slug": "porto",
+  "updated": "2026-10-06T22:03:29.652Z"
 }

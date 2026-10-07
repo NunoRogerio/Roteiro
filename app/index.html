@@ -586,12 +586,14 @@ function rtTiles(opts) {
     } catch (e) {}
   }
   /* Place search (Oct 7): three sources at once, merged. MapTiler (fuzzy, knows shops and restaurants),
-     Photon (OSM, typo tolerant) and Nominatim. Biased to where the user is, else to the map, never restricted. */
+     Photon (OSM, typo tolerant) and Nominatim. Never limited to an area and never tied to where the user is:
+     results only lean towards the roteiro's own city (a Madrid roteiro made from Lisbon finds Madrid first). */
   let here = null;
   const mtKey = () => { let k = ''; try { k = localStorage.getItem('wf-mt-key') || ''; } catch (e) {} return encodeURIComponent(k || 'nXogmRs94P1OvRDMdUN6'); };
   const dot = s => s ? s + '.' : '';
   async function searchPlaces(q) {
-    const c = here || map.getCenter(), lat = c.lat, lng = c.lng;
+    const cc = current && current.data.center;
+    const c = cc ? { lat: cc[0], lng: cc[1] } : map.getCenter(), lat = c.lat, lng = c.lng;
     const get = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
     const [mt, ph, no] = await Promise.all([
       get('https://api.maptiler.com/geocoding/' + encodeURIComponent(q) + '.json?key=' + mtKey() + '&proximity=' + lng + ',' + lat + '&language=pt&limit=6&fuzzyMatch=true'),

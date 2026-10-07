@@ -294,17 +294,25 @@ function rtTiles(opts) {
   const CATS = [
     {id:'comer', name:'Comer', color:'#C8562B', tint:'#F8E7DF', ink:'#9E3F1C'},
     {id:'visitar', name:'Visitar', color:'#1D7F86', tint:'#DDF0F1', ink:'#145E63'},
+    {id:'banhos', name:'Banhos', color:'#2468B8', tint:'#E1ECF8', ink:'#1B4F8C'},
+    {id:'trilhos', name:'Trilhos', color:'#7A5A1F', tint:'#F1EADC', ink:'#5E4516'},
     {id:'cultura', name:'Cultura', color:'#2F8A5B', tint:'#E0F1E7', ink:'#1F6641'},
     {id:'musica', name:'Música', color:'#7A4BB0', tint:'#EEE6F7', ink:'#5B3488'},
     {id:'noite', name:'Noite', color:'#333A73', tint:'#E4E6F3', ink:'#2A3062'}
   ];
-  const MEALS = ['Pequeno-almoço', 'Almoço', 'Lanche', 'Jantar', 'Cafezinho'];
+  const TAGS = {
+    comer: ['Pequeno-almoço', 'Almoço', 'Lanche', 'Jantar', 'Cafezinho'],
+    banhos: ['Praia', 'Rio', 'Lago'],
+    trilhos: ['Montanha', 'Passeio']
+  };
   const ICONS = {
     comer:'<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.7 0-3 2-3 5v4h3v9"/>',
     visitar:'<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
     cultura:'<path d="M3 9l9-5 9 5M5 9v9M10 9v9M14 9v9M19 9v9M3 20h18"/>',
     musica:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
-    noite:'<path d="M5 4h14l-7 8zM12 12v8M8 20h8"/>'
+    noite:'<path d="M5 4h14l-7 8zM12 12v8M8 20h8"/>',
+    banhos:'<path d="M3 16c2 0 2-1.5 4.5-1.5S10 16 12 16s2.5-1.5 4.5-1.5S19 16 21 16M3 20c2 0 2-1.5 4.5-1.5S10 20 12 20s2.5-1.5 4.5-1.5S19 20 21 20"/><circle cx="12" cy="8" r="3"/>',
+    trilhos:'<path d="M3 20l6-11 4 6 2.5-3.5L21 20z"/>'
   };
   const $ = id => document.getElementById(id);
   const icon = (id, s, w) => '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="'+(w||2.2)+'" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[id]||ICONS.visitar)+'</svg>';
@@ -344,6 +352,7 @@ function rtTiles(opts) {
   }
   async function saveRoteiro(r, message) {
     r.data.updated = new Date().toISOString();
+    r.data.categories = CATS;
     try {
       r.sha = await putFile('roteiros/' + r.slug + '.json', b64enc(JSON.stringify(r.data, null, 2)), message, r.sha);
     } catch (e) {
@@ -526,11 +535,11 @@ function rtTiles(opts) {
   function buildCats() {
     $('catGroup').innerHTML = CATS.map(c =>
       '<label class="row"><span class="ci" style="background:' + c.color + '">' + icon(c.id, 14, 2.4) + '</span><span class="name">' + c.name + '</span><input type="radio" name="cat" value="' + c.id + '"' + (draft.category === c.id ? ' checked' : '') + '></label>' +
-      (c.id === 'comer' && draft.category === 'comer' ? '<div class="meal">' + MEALS.map(m => '<button type="button" class="' + (draft.tags.includes(m) ? 'on' : '') + '" style="' + (draft.tags.includes(m) ? 'background:' + c.color + ';border-color:' + c.color : '') + '" data-m="' + m + '" aria-pressed="' + draft.tags.includes(m) + '">' + m + '</button>').join('') + '</div>' : '')
+      (TAGS[c.id] && draft.category === c.id ? '<div class="meal">' + TAGS[c.id].map(m => '<button type="button" class="' + (draft.tags.includes(m) ? 'on' : '') + '" style="' + (draft.tags.includes(m) ? 'background:' + c.color + ';border-color:' + c.color : '') + '" data-m="' + m + '" aria-pressed="' + draft.tags.includes(m) + '">' + m + '</button>').join('') + '</div>' : '')
     ).join('');
-    $('catGroup').querySelectorAll('input').forEach(i => i.onchange = () => { draft.category = i.value; if (i.value !== 'comer') draft.tags = []; buildCats(); validate(); });
+    $('catGroup').querySelectorAll('input').forEach(i => i.onchange = () => { draft.category = i.value; draft.tags = draft.tags.filter(t => (TAGS[i.value] || []).includes(t)); buildCats(); validate(); });
     $('catGroup').querySelectorAll('.meal button').forEach(b => b.onclick = () => {
-      const m = b.dataset.m; draft.tags = draft.tags.includes(m) ? draft.tags.filter(x => x !== m) : MEALS.filter(x => x === m || draft.tags.includes(x)); buildCats();
+      const m = b.dataset.m; draft.tags = draft.tags.includes(m) ? draft.tags.filter(x => x !== m) : TAGS[draft.category].filter(x => x === m || draft.tags.includes(x)); buildCats();
     });
   }
   function buildPhotos() {

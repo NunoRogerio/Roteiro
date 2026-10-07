@@ -189,7 +189,9 @@ button{cursor:pointer}
     visitar: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
     cultura: '<path d="M3 9l9-5 9 5M5 9v9M10 9v9M14 9v9M19 9v9M3 20h18"/>',
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
-    noite: '<path d="M5 4h14l-7 8zM12 12v8M8 20h8"/>'
+    noite: '<path d="M5 4h14l-7 8zM12 12v8M8 20h8"/>',
+    banhos: '<path d="M3 16c2 0 2-1.5 4.5-1.5S10 16 12 16s2.5-1.5 4.5-1.5S19 16 21 16M3 20c2 0 2-1.5 4.5-1.5S10 20 12 20s2.5-1.5 4.5-1.5S19 20 21 20"/><circle cx="12" cy="8" r="3"/>',
+    trilhos: '<path d="M3 20l6-11 4 6 2.5-3.5L21 20z"/>'
   };
   const icon = (id, size) => '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[id] || ICONS.visitar) + '</svg>';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -220,7 +222,18 @@ button{cursor:pointer}
     return L.divIcon({ className: '', iconSize: [32, 32], iconAnchor: [16, 16],
       html: '<div class="mk' + (sel ? ' sel' : '') + '" style="background:' + cat.color + '">' + icon(cat.id, 16) + '</div>' });
   }
-  const catOf = id => data.categories.find(c => c.id === id) || data.categories[0];
+  /* Categories known to every roteiro, also older ones saved before a category existed. */
+  const KNOWN = [
+    {id:'comer', name:'Comer', color:'#C8562B', tint:'#F8E7DF', ink:'#9E3F1C'},
+    {id:'visitar', name:'Visitar', color:'#1D7F86', tint:'#DDF0F1', ink:'#145E63'},
+    {id:'banhos', name:'Banhos', color:'#2468B8', tint:'#E1ECF8', ink:'#1B4F8C'},
+    {id:'trilhos', name:'Trilhos', color:'#7A5A1F', tint:'#F1EADC', ink:'#5E4516'},
+    {id:'cultura', name:'Cultura', color:'#2F8A5B', tint:'#E0F1E7', ink:'#1F6641'},
+    {id:'musica', name:'Música', color:'#7A4BB0', tint:'#EEE6F7', ink:'#5B3488'},
+    {id:'noite', name:'Noite', color:'#333A73', tint:'#E4E6F3', ink:'#2A3062'}
+  ];
+  const allCats = () => KNOWN.map(k => (data.categories || []).find(c => c.id === k.id) || k).concat((data.categories || []).filter(c => !KNOWN.some(k => k.id === c.id)));
+  const catOf = id => allCats().find(c => c.id === id) || KNOWN[1];
   const tagsHtml = (cat, tags) => (tags && tags.length) ? '<div class="tags">' + tags.map(t => '<span class="tag" style="background:' + cat.tint + ';color:' + cat.ink + '">' + esc(t) + '</span>').join('') + '</div>' : '';
 
   function select(id, fly) {
@@ -317,7 +330,7 @@ button{cursor:pointer}
       markers[p.id] = m;
     });
 
-    const used = data.categories.filter(c => data.places.some(p => p.category === c.id));
+    const used = allCats().filter(c => data.places.some(p => p.category === c.id));
     const legend = document.getElementById('legend');
     legend.innerHTML = used.map(c => '<button class="chip press' + (hidden.has(c.id) ? ' off' : '') + '" data-cat="' + c.id + '"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</button>').join('');
     legend.querySelectorAll('.chip').forEach(b => b.addEventListener('click', e => {

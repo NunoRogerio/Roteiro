@@ -62,11 +62,8 @@
     {
       "id": "majestic",
       "name": "Café Majestic",
-      "category": "comer",
-      "tags": [
-        "Lanche",
-        "Cafezinho"
-      ],
+      "category": "banhos",
+      "tags": [],
       "lat": 38.9946071642165,
       "lng": -9.081945849430278,
       "address": "Estrada da Fresca (EN 248). Malafaia.",
@@ -174,5 +171,5 @@
     }
   ],
   "slug": "porto",
-  "updated": "2026-10-07T12:48:17.833Z"
+  "updated": "2026-10-07T12:49:27.643Z"
 }

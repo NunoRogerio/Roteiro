@@ -220,6 +220,7 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
     <div class="field">
       <span class="annot" id="pinHint">Toca no mapa para marcar o sítio.</span>
       <div class="mini-map" id="miniMap"></div>
+      <button type="button" class="btn secondary press" id="useHere" style="flex:none;margin-top:8px">Usar onde estou</button>
     </div>
     <div class="field"><span class="label">Categoria</span><div class="group" id="catGroup"></div></div>
     <label class="field"><span class="label">Comentário</span><textarea class="box" id="noteIn" placeholder="O que recomendas aqui?"></textarea></label>
@@ -584,31 +585,67 @@ function rtTiles(opts) {
       if (!draft.name.trim() && j.name) { draft.name = j.name; $('placeIn').value = j.name; validate(); }
     } catch (e) {}
   }
+  /* Place search (Oct 7): three sources at once, merged. MapTiler (fuzzy, knows shops and restaurants),
+     Photon (OSM, typo tolerant) and Nominatim. Biased to where the user is, else to the map, never restricted. */
+  let here = null;
+  const mtKey = () => { let k = ''; try { k = localStorage.getItem('wf-mt-key') || ''; } catch (e) {} return encodeURIComponent(k || 'nXogmRs94P1OvRDMdUN6'); };
+  const dot = s => s ? s + '.' : '';
+  async function searchPlaces(q) {
+    const c = here || map.getCenter(), lat = c.lat, lng = c.lng;
+    const get = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
+    const [mt, ph, no] = await Promise.all([
+      get('https://api.maptiler.com/geocoding/' + encodeURIComponent(q) + '.json?key=' + mtKey() + '&proximity=' + lng + ',' + lat + '&language=pt&limit=6&fuzzyMatch=true'),
+      get('https://photon.komoot.io/api/?limit=6&q=' + encodeURIComponent(q) + '&lat=' + lat + '&lon=' + lng),
+      get('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=pt&q=' + encodeURIComponent(q))
+    ]);
+    const out = [];
+    (mt && mt.features || []).forEach(f => {
+      const ctx = (f.context || []).map(x => x.text);
+      out.push({ name: f.text || f.place_name, area: [f.properties && f.properties.address, ctx[0]].filter(Boolean).join('. '), lat: f.center[1], lng: f.center[0] });
+    });
+    (ph && ph.features || []).forEach(f => {
+      const p = f.properties || {};
+      out.push({ name: p.name || p.street, area: [p.street && p.name ? p.street : '', p.district || p.locality || p.city].filter(Boolean).join('. '), lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] });
+    });
+    (no || []).forEach(r => {
+      const a = r.address || {};
+      out.push({ name: r.name || r.display_name.split(',')[0], area: [a.road, a.suburb || a.neighbourhood || a.town || a.city].filter(Boolean).join('. '), lat: +r.lat, lng: +r.lon });
+    });
+    const seen = [], res = [];
+    out.filter(r => r.name).forEach(r => {
+      if (seen.some(s => s.name.toLowerCase() === r.name.toLowerCase() && Math.abs(s.lat - r.lat) < 0.002 && Math.abs(s.lng - r.lng) < 0.002)) return;
+      seen.push(r); res.push(r);
+    });
+    return res.slice(0, 6);
+  }
   $('placeIn').oninput = () => {
     draft.name = $('placeIn').value; validate();
     clearTimeout(searchTimer);
     const q = draft.name.trim();
     if (q.length < 3) { $('results').hidden = true; return; }
     searchTimer = setTimeout(async () => {
-      try {
-        const c = map.getCenter(), d = 0.15;
-        const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=pt&viewbox=' + (c.lng - d) + ',' + (c.lat + d) + ',' + (c.lng + d) + ',' + (c.lat - d) + '&q=' + encodeURIComponent(q);
-        const res = await (await fetch(url)).json();
-        if ($('placeIn').value.trim() !== q) return;
-        $('results').innerHTML = res.map((r, i) => {
-          const a = r.address || {};
-          const addr = [a.road, a.suburb || a.neighbourhood || a.city].filter(Boolean).join('. ');
-          return '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name || r.display_name.split(',')[0]) + '</span><span class="annot">' + esc(addr) + '</span></button>';
-        }).join('');
-        $('results').hidden = !res.length;
-        $('results').querySelectorAll('.result').forEach(b => b.onclick = () => {
-          const r = res[+b.dataset.i], a = r.address || {};
-          draft.name = r.name || r.display_name.split(',')[0]; $('placeIn').value = draft.name;
-          draft.address = [a.road, a.suburb || a.neighbourhood].filter(Boolean).join('. ') + ([a.road, a.suburb, a.neighbourhood].some(Boolean) ? '.' : '');
-          $('results').hidden = true; setPin(+r.lat, +r.lon, true);
-        });
-      } catch (e) {}
-    }, 500);
+      const res = await searchPlaces(q);
+      if ($('placeIn').value.trim() !== q) return;
+      $('results').innerHTML = res.length ? res.map((r, i) =>
+        '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name) + '</span>' + (r.area ? '<span class="annot">' + esc(r.area) + '</span>' : '') + '</button>').join('')
+        : '<div class="result"><span class="annot">Não encontrei. Usa onde estás ou marca no mapa.</span></div>';
+      $('results').hidden = false;
+      $('results').querySelectorAll('button.result').forEach(b => b.onclick = () => {
+        const r = res[+b.dataset.i];
+        draft.name = r.name; $('placeIn').value = r.name; draft.address = dot(r.area);
+        $('results').hidden = true; setPin(r.lat, r.lng, true);
+      });
+    }, 450);
+  };
+  $('useHere').onclick = () => {
+    if (!navigator.geolocation) { toast('Este telefone não dá a localização.'); return; }
+    const b = $('useHere'); b.textContent = 'A localizar…'; b.disabled = true;
+    navigator.geolocation.getCurrentPosition(pos => {
+      here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setPin(here.lat, here.lng, true); reverse(here.lat, here.lng);
+      b.textContent = 'Usar onde estou'; b.disabled = false;
+    }, () => { toast('Sem acesso à localização. Marca no mapa.'); b.textContent = 'Usar onde estou'; b.disabled = false; },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   };
   $('noteIn').oninput = () => { draft.note = $('noteIn').value; };
   $('addPhoto').onclick = () => $('fileIn').click();

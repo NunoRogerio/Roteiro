@@ -214,8 +214,11 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
       <h2 class="title-m" id="placeTitle" style="flex-grow:1">Adicionar sítio</h2>
       <button class="round press" id="sharePlace" aria-label="Partilhar este sítio" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#23262B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
     </div>
-    <label class="field"><span class="label">Sítio</span>
-      <span class="input"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="placeIn" type="text" placeholder="Procura ou escreve o nome" autocomplete="off" autocorrect="off" name="roteiro-sitio"><button type="button" class="paste press" id="pasteLink">Colar</button></span>
+    <label class="field"><span class="label">Nome</span>
+      <span class="input"><input id="nameIn2" type="text" placeholder="Ex.: Casa Galega" autocomplete="off" name="roteiro-nome"></span>
+    </label>
+    <label class="field"><span class="label">Localização</span>
+      <span class="input"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="placeIn" type="text" placeholder="Morada, sítio ou link do Mapas" autocomplete="off" autocorrect="off" name="roteiro-local"><button type="button" class="paste press" id="pasteLink">Colar</button></span>
     </label>
     <div class="results" id="results" hidden style="margin-top:8px"></div>
     <div class="field">
@@ -612,7 +615,7 @@ function rtTiles(opts) {
     draft.tags = draft.tags || []; draft.photos = draft.photos || [];
     newPhotos = [];
     $('placeTitle').textContent = p ? 'Editar sítio' : 'Adicionar sítio';
-    $('placeIn').value = draft.name; $('noteIn').value = draft.note || '';
+    $('nameIn2').value = draft.name; $('placeIn').value = (draft.address || '').replace(/\.$/, ''); $('noteIn').value = draft.note || '';
     $('results').hidden = true; $('removePlace').hidden = !p; $('sharePlace').hidden = !p; $('cancelPlace').hidden = !!p;
     $('pinHint').textContent = p ? 'Toca no mapa para acertar a posição.' : 'Toca no mapa para marcar o sítio.';
     buildCats(); buildPhotos(); validate();
@@ -635,7 +638,8 @@ function rtTiles(opts) {
       const j = await (await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=pt&lat=' + lat + '&lon=' + lng)).json();
       const a = j.address || {};
       const parts = [a.road, a.suburb || a.neighbourhood].filter(Boolean); draft.address = parts.length ? parts.join('. ') + '.' : '';
-      if (!draft.name.trim() && j.name) { draft.name = j.name; $('placeIn').value = j.name; validate(); }
+      if (!draft.name.trim() && j.name) { draft.name = j.name; $('nameIn2').value = j.name; validate(); }
+      if (draft.address && !$('placeIn').value.trim()) $('placeIn').value = draft.address.replace(/\.$/, '');
     } catch (e) {}
   }
   /* Place search (Oct 7): three sources at once, merged. MapTiler (fuzzy, knows shops and restaurants),
@@ -774,19 +778,21 @@ function rtTiles(opts) {
     const got = parseMapsLink($('placeIn').value);
     if (!got) return;
     clearTimeout(searchTimer); $('results').hidden = true;
-    if (got.short) { $('placeIn').value = draft.name = ''; validate(); toast('Este link não traz a posição. Partilha a partir do Apple Maps ou copia o endereço completo do Google Maps.'); return; }
-    draft.name = (got.name || '').trim(); $('placeIn').value = draft.name;
+    if (got.short) { $('placeIn').value = ''; validate(); toast('Este link não traz a posição. Partilha a partir do Apple Maps ou copia o endereço completo do Google Maps.'); return; }
+    if (!draft.name.trim() && got.name) { draft.name = got.name.trim(); $('nameIn2').value = draft.name; }
     draft.address = got.address ? dot(got.address.split(',').slice(0, 2).join('.').trim()) : '';
     setPin(got.lat, got.lng, true);
     if (!draft.address) reverse(got.lat, got.lng);
-    validate(); toast('Sítio encontrado.');
+    $('placeIn').value = draft.address ? draft.address.replace(/\.$/, '') : (got.name || '');
+    validate(); toast('Localização encontrada.');
   }
+  /* Nome and Localização are separate (Oct 7): the name is typed freely, the location is searched or pasted. */
+  $('nameIn2').oninput = () => { draft.name = $('nameIn2').value; validate(); };
 
   $('placeIn').oninput = () => {
     if (/https?:\/\//.test($('placeIn').value)) return;
-    draft.name = $('placeIn').value; validate();
     clearTimeout(searchTimer);
-    const q = draft.name.trim();
+    const q = $('placeIn').value.trim();
     if (q.length < 3) { $('results').hidden = true; return; }
     searchTimer = setTimeout(async () => {
       const res = await searchPlaces(q);
@@ -795,11 +801,12 @@ function rtTiles(opts) {
         '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name) + '</span>' + (r.area ? '<span class="annot">' + esc(r.area) + '</span>' : '') + '</button>').join('') +
         (res[0].google ? '<div class="result"><span class="annot" style="font-size:13px">Google Maps</span></div>' : '')
         :'<div class="result"><span class="annot">Não encontrei aqui.</span></div>';
-      $('results').innerHTML += '<a class="result" href="' + mapsSearchUrl(q) + '" target="_blank" rel="noopener" style="text-decoration:none"><span class="title-s" style="color:var(--primary)">Procurar no ' + (isIOS ? 'Apple Maps' : 'Google Maps') + '</span><span class="annot">Lá, toca em Partilhar e Copiar. Depois cola o link aqui em Sítio.</span></a>';
+      $('results').innerHTML += '<a class="result" href="' + mapsSearchUrl([draft.name.trim(), q].filter(Boolean).join(' ')) + '" target="_blank" rel="noopener" style="text-decoration:none"><span class="title-s" style="color:var(--primary)">Procurar no ' + (isIOS ? 'Apple Maps' : 'Google Maps') + '</span><span class="annot">Lá, toca em Partilhar e Copiar. Depois toca em Colar.</span></a>';
       $('results').hidden = false;
       $('results').querySelectorAll('button.result').forEach(b => b.onclick = () => {
         const r = res[+b.dataset.i];
-        draft.name = r.name; $('placeIn').value = r.name; draft.address = dot(r.area);
+        if (!draft.name.trim()) { draft.name = r.name; $('nameIn2').value = r.name; }
+        draft.address = dot(r.area || r.name); $('placeIn').value = [r.name, r.area].filter(Boolean).join('. ');
         $('results').hidden = true; setPin(r.lat, r.lng, true);
       });
     }, 450);

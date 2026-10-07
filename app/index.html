@@ -63,7 +63,7 @@ button{cursor:pointer;color:inherit}
 .tag{height:28px;padding:0 12px;border-radius:14px;font-size:13px;font-weight:600;display:flex;align-items:center}
 
 /* map */
-.map-wrap{position:relative;margin-top:24px;height:248px;border-radius:20px;overflow:hidden;background:var(--map);box-shadow:var(--shadow)}
+.map-wrap{position:relative;isolation:isolate;margin-top:24px;height:248px;border-radius:20px;overflow:hidden;background:var(--map);box-shadow:var(--shadow)}
 .map-wrap.full{position:fixed;inset:0;height:auto;margin:0;border-radius:0;z-index:50}
 .map{position:absolute;inset:0;background:var(--map)}
 .legend{position:absolute;left:8px;right:8px;top:8px;z-index:500;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none}
@@ -117,7 +117,7 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
 .results{background:var(--surface);border-radius:16px;overflow:hidden}
 .result{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--line);padding:12px 16px}
 .result:last-child{border-bottom:none}
-.mini-map{position:relative;height:160px;border-radius:16px;overflow:hidden;background:var(--map)}
+.mini-map{position:relative;isolation:isolate;height:160px;border-radius:16px;overflow:hidden;background:var(--map)}
 .group{background:var(--surface);border-radius:16px;overflow:hidden}
 .row{display:flex;align-items:center;gap:16px;min-height:48px;padding:0 16px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:none}

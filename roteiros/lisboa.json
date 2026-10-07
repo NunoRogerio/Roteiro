@@ -70,7 +70,21 @@
       "lat": 38.71489300685955,
       "lng": -9.309374454551824,
       "photos": []
+    },
+    {
+      "id": "muylnme6pt4d",
+      "name": "Casa falega",
+      "category": "comer",
+      "tags": [
+        "Lanche",
+        "Jantar"
+      ],
+      "note": "",
+      "address": "Rua Henrique Alves Costa. Ramalde.",
+      "lat": 41.1680261884891,
+      "lng": -8.634138107299806,
+      "photos": []
     }
   ],
-  "updated": "2026-10-07T07:47:58.196Z"
+  "updated": "2026-10-07T21:08:48.708Z"
 }

@@ -674,8 +674,8 @@ function rtTiles(opts) {
     }
     const get = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
     const [mt, ph, no] = await Promise.all([
-      get('https://api.maptiler.com/geocoding/' + encodeURIComponent(q) + '.json?key=' + mtKey() + '&proximity=' + lng + ',' + lat + '&language=pt&limit=6&fuzzyMatch=true'),
-      get('https://photon.komoot.io/api/?limit=6&q=' + encodeURIComponent(q) + '&lat=' + lat + '&lon=' + lng),
+      get('https://api.maptiler.com/geocoding/' + encodeURIComponent(q) + '.json?key=' + mtKey() + '&proximity=' + lng + ',' + lat + '&language=pt&limit=10&fuzzyMatch=true'),
+      get('https://photon.komoot.io/api/?limit=10&q=' + encodeURIComponent(q) + '&lat=' + lat + '&lon=' + lng),
       get('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=pt&q=' + encodeURIComponent(q))
     ]);
     const out = [];
@@ -691,8 +691,25 @@ function rtTiles(opts) {
       const a = r.address || {};
       out.push({ name: r.name || r.display_name.split(',')[0], area: [a.road, a.suburb || a.neighbourhood || a.town || a.city].filter(Boolean).join('. '), lat: +r.lat, lng: +r.lon });
     });
+    /* Relevance (Oct 7): the free sources answer loosely ("Casa galega" brought back Casablanca).
+       Keep only results whose name and area hold the words typed, best matches first.
+       Generic words (restaurante, café…) help the ranking but are never required. */
+    const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const GENERIC = ['restaurante', 'restaurant', 'cafe', 'bar', 'tasca', 'o', 'a', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'e'];
+    const words = norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1);
+    const key = words.filter(w => !GENERIC.includes(w));
+    const need = key.length ? key : words;
+    const score = r => {
+      const nm = norm(r.name), all = nm + ' ' + norm(r.area);
+      const hit = need.filter(w => new RegExp('\\b' + w).test(all)).length;
+      const inName = need.filter(w => new RegExp('\\b' + w).test(nm)).length;
+      return { hit, inName };
+    };
     const seen = [], res = [];
-    out.filter(r => r.name).forEach(r => {
+    out.filter(r => r.name).map(r => Object.assign(r, score(r)))
+      .filter(r => need.length && r.hit === need.length && r.inName > 0)
+      .sort((x, y) => y.inName - x.inName)
+      .forEach(r => {
       if (seen.some(s => s.name.toLowerCase() === r.name.toLowerCase() && Math.abs(s.lat - r.lat) < 0.002 && Math.abs(s.lng - r.lng) < 0.002)) return;
       seen.push(r); res.push(r);
     });

@@ -24,7 +24,8 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,system-ui,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 body{-webkit-user-select:none;user-select:none;min-height:100vh;overscroll-behavior-y:none}
-input,textarea{-webkit-user-select:text;user-select:text}
+input,textarea{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default}
+.paste{flex-shrink:0;height:32px;padding:0 12px;border:none;border-radius:16px;background:var(--subtle);color:var(--primary);font-size:16px;font-weight:600}
 button,a,input,textarea{font-family:inherit}
 button{cursor:pointer;color:inherit}
 [hidden]{display:none!important}
@@ -214,7 +215,7 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
       <button class="round press" id="sharePlace" aria-label="Partilhar este sítio" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#23262B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
     </div>
     <label class="field"><span class="label">Sítio</span>
-      <span class="input"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="placeIn" type="text" placeholder="Procura ou escreve o nome" autocomplete="off"></span>
+      <span class="input"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="placeIn" type="text" placeholder="Procura ou escreve o nome" autocomplete="off" autocorrect="off" name="roteiro-sitio"><button type="button" class="paste press" id="pasteLink">Colar</button></span>
     </label>
     <div class="results" id="results" hidden style="margin-top:8px"></div>
     <div class="field">
@@ -742,7 +743,18 @@ function rtTiles(opts) {
     }
     return null;
   }
-  $('placeIn').addEventListener('paste', () => setTimeout(() => {
+  /* "Colar" (Oct 7): iOS sometimes gives no paste menu in this field, so the app reads the clipboard itself.
+     iOS asks once with its own small Paste bubble. */
+  $('pasteLink').onclick = async e => {
+    e.preventDefault();
+    let t = '';
+    try { t = await navigator.clipboard.readText(); } catch (err) { toast('O telefone não deixou ler o que copiaste. Experimenta outra vez.'); return; }
+    if (!t) { toast('Não há nada copiado.'); return; }
+    $('placeIn').value = t.trim();
+    if (parseMapsLink(t)) applyPasted(); else $('placeIn').dispatchEvent(new Event('input'));
+  };
+  $('placeIn').addEventListener('paste', () => setTimeout(applyPasted, 0));
+  function applyPasted() {
     const got = parseMapsLink($('placeIn').value);
     if (!got) return;
     clearTimeout(searchTimer); $('results').hidden = true;
@@ -752,7 +764,7 @@ function rtTiles(opts) {
     setPin(got.lat, got.lng, true);
     if (!draft.address) reverse(got.lat, got.lng);
     validate(); toast('Sítio encontrado.');
-  }, 0));
+  }
 
   $('placeIn').oninput = () => {
     if (/https?:\/\//.test($('placeIn').value)) return;

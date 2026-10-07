@@ -171,7 +171,9 @@ button{cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function () {
-  const SLUG = (new URLSearchParams(location.search).get('r') || 'porto').replace(/[^a-z0-9-]/gi, '');
+  const QS = new URLSearchParams(location.search);
+  const SLUG = (QS.get('r') || 'porto').replace(/[^a-z0-9-]/gi, '');
+  const PLACE = QS.get('s') || null;
   (function manifest() {
     const base = new URL('./', location.href).href;
     const m = { name: 'Roteiro', short_name: 'Roteiro', lang: 'pt', start_url: base + '?r=' + SLUG, scope: base, display: 'standalone',
@@ -262,8 +264,42 @@ button{cursor:pointer}
     else map.setView(data.center, data.zoom);
   }
 
+  /* ---------- one place (?s=) ---------- */
+  function directions(p) {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return ios ? 'https://maps.apple.com/?daddr=' + p.lat + ',' + p.lng + '&q=' + encodeURIComponent(p.name)
+               : 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
+  }
+  function renderSingle(p) {
+    const c = catOf(p.category);
+    document.getElementById('owner').textContent = data.city + ', por ' + data.owner;
+    document.getElementById('city').textContent = p.name;
+    const desc = document.getElementById('desc');
+    desc.className = 'annot lead'; desc.textContent = p.address || ''; desc.hidden = !p.address;
+    document.title = p.name + ', por ' + data.owner;
+    window.__setManifest(document.title, p.name);
+    Object.values(markers).forEach(m => m.remove());
+    markers = {};
+    const m = L.marker([p.lat, p.lng], { icon: markerIcon(c, true), keyboard: false, interactive: false }).addTo(map);
+    m.place = p; markers[p.id] = m;
+    document.getElementById('legend').innerHTML = '';
+    const photos = (p.photos || []).map(ph => '<div class="card-photo" style="height:240px;border-radius:16px;background-image:url(\'' + encodeURI(ph) + '\')"></div>').join('');
+    document.getElementById('sections').innerHTML =
+      '<section style="display:flex;flex-direction:column;gap:16px">' +
+        '<h2 class="title-s sec-title" style="margin:0"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</h2>' +
+        (p.note ? '<p class="text" style="margin:0">' + esc(p.note) + '</p>' : '') +
+        tagsHtml(c, p.tags) + photos +
+      '</section>' +
+      '<div style="margin-top:24px;display:flex;flex-direction:column;gap:24px">' +
+        '<a class="pill press" style="height:52px;border-radius:26px;font-size:17px;display:flex;align-items:center;justify-content:center;text-decoration:none" href="' + directions(p) + '" target="_blank" rel="noopener">Como chegar</a>' +
+        '<a class="pill press" style="height:52px;border-radius:26px;font-size:17px;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--subtle);color:var(--primary)" href="?r=' + encodeURIComponent(SLUG) + '">Ver o roteiro todo</a>' +
+      '</div>';
+  }
+
   /* ---------- render ---------- */
   function render() {
+    const one = PLACE && data.places.find(x => x.id === PLACE);
+    if (one) return renderSingle(one);
     document.getElementById('owner').textContent = 'Por ' + data.owner;
     document.getElementById('city').textContent = data.city;
     document.getElementById('desc').textContent = (data.description ? data.description + ' ' : '') + 'Sempre atualizado.';
@@ -321,7 +357,8 @@ button{cursor:pointer}
       lastJson = txt;
       data = JSON.parse(txt);
       render();
-      if (first) fitAll();
+      const one = PLACE && data.places.find(x => x.id === PLACE);
+      if (first) { if (one) map.setView([one.lat, one.lng], 16); else fitAll(); }
     } catch (e) {
       if (first && !data) document.getElementById('sections').innerHTML = '<p class="annot empty">Não foi possível carregar o roteiro. Volta a tentar quando tiveres rede.</p>';
     }
@@ -343,10 +380,10 @@ button{cursor:pointer}
     card.classList.add('leaving');
     setTimeout(() => card.classList.remove('show', 'leaving'), 400);
   }
-  if (!standalone && !dismissed && isIOS) card.classList.add('show');
+  if (!PLACE && !standalone && !dismissed && isIOS) card.classList.add('show');
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); deferred = e;
-    if (!standalone && !dismissed) card.classList.add('show');
+    if (!PLACE && !standalone && !dismissed) card.classList.add('show');
   });
   window.addEventListener('appinstalled', () => hideCard(true));
 

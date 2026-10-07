@@ -209,7 +209,10 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
 <div class="sheet" id="placeSheet" role="dialog">
   <div class="sheet-top"><button class="grabber" aria-label="Fechar"></button></div>
   <div class="sheet-body" id="placeBody">
-    <h2 class="title-m" id="placeTitle">Adicionar sítio</h2>
+    <div class="head" style="min-height:auto">
+      <h2 class="title-m" id="placeTitle" style="flex-grow:1">Adicionar sítio</h2>
+      <button class="round press" id="sharePlace" aria-label="Partilhar este sítio" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#23262B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+    </div>
     <label class="field"><span class="label">Sítio</span>
       <span class="input"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5F6670" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="placeIn" type="text" placeholder="Procura ou escreve o nome" autocomplete="off"></span>
     </label>
@@ -556,7 +559,7 @@ function rtTiles(opts) {
     newPhotos = [];
     $('placeTitle').textContent = p ? 'Editar sítio' : 'Adicionar sítio';
     $('placeIn').value = draft.name; $('noteIn').value = draft.note || '';
-    $('results').hidden = true; $('removePlace').hidden = !p; $('cancelPlace').hidden = !!p;
+    $('results').hidden = true; $('removePlace').hidden = !p; $('sharePlace').hidden = !p; $('cancelPlace').hidden = !!p;
     $('pinHint').textContent = p ? 'Toca no mapa para acertar a posição.' : 'Toca no mapa para marcar o sítio.';
     buildCats(); buildPhotos(); validate();
     $('placeBody').scrollTop = 0;
@@ -649,6 +652,13 @@ function rtTiles(opts) {
     current.data.places = keep.filter(x => x.id !== draft.id);
     try { await saveRoteiro(current, 'Remover: ' + draft.name); closeSheets(); renderRoteiro(false); toast('Removido.'); }
     catch (e) { current.data.places = keep; toast('Não foi possível remover. Verifica a ligação.'); }
+  };
+
+  /* ---------- share one place ---------- */
+  $('sharePlace').onclick = async () => {
+    const url = shareUrl(current.slug) + '&s=' + encodeURIComponent(draft.id);
+    if (navigator.share) { try { await navigator.share({ title: draft.name + ', por ' + current.data.owner, url }); } catch (e) {} }
+    else { try { await navigator.clipboard.writeText(url); toast('Link copiado.'); } catch (e) {} }
   };
 
   /* ---------- share ---------- */

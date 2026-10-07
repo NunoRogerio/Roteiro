@@ -1,0 +1,64 @@
+{
+  "slug": "casa-galega",
+  "owner": "Nuno",
+  "city": "Casa galega",
+  "description": "Os sítios que recomendo a quem passa pela cidade.",
+  "center": [
+    38.6796852,
+    -8.9687775
+  ],
+  "zoom": 13,
+  "categories": [
+    {
+      "id": "comer",
+      "name": "Comer",
+      "color": "#C8562B",
+      "tint": "#F8E7DF",
+      "ink": "#9E3F1C"
+    },
+    {
+      "id": "visitar",
+      "name": "Visitar",
+      "color": "#1D7F86",
+      "tint": "#DDF0F1",
+      "ink": "#145E63"
+    },
+    {
+      "id": "banhos",
+      "name": "Banhos",
+      "color": "#2468B8",
+      "tint": "#E1ECF8",
+      "ink": "#1B4F8C"
+    },
+    {
+      "id": "trilhos",
+      "name": "Trilhos",
+      "color": "#7A5A1F",
+      "tint": "#F1EADC",
+      "ink": "#5E4516"
+    },
+    {
+      "id": "cultura",
+      "name": "Cultura",
+      "color": "#2F8A5B",
+      "tint": "#E0F1E7",
+      "ink": "#1F6641"
+    },
+    {
+      "id": "musica",
+      "name": "Música",
+      "color": "#7A4BB0",
+      "tint": "#EEE6F7",
+      "ink": "#5B3488"
+    },
+    {
+      "id": "noite",
+      "name": "Noite",
+      "color": "#333A73",
+      "tint": "#E4E6F3",
+      "ink": "#2A3062"
+    }
+  ],
+  "places": [],
+  "updated": "2026-10-07T07:51:44.959Z"
+}

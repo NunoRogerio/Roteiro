@@ -100,7 +100,11 @@ button{cursor:pointer}
 .sec-title{margin:0 0 16px;display:flex;align-items:center;gap:8px}
 .sec-title .dot{width:16px;height:16px;border-radius:50%}
 .cards{display:flex;flex-direction:column;gap:8px}
-.card{display:block;width:100%;text-align:left;border:none;padding:0;background:var(--surface);border-radius:16px;overflow:hidden;color:inherit;box-shadow:var(--shadow)}
+.card{display:block;width:100%;text-align:left;border:none;padding:0;cursor:pointer;background:var(--surface);border-radius:16px;overflow:hidden;color:inherit;box-shadow:var(--shadow)}
+.subtle{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border:none;border-radius:24px;background:var(--subtle);color:var(--primary);font-size:17px;font-weight:600;text-decoration:none}
+.card .subtle{margin-top:20px}
+.tip .pill{margin-top:16px;width:100%}
+.dir-list{margin-top:24px;display:flex;flex-direction:column;gap:16px}
 .card-photo{height:160px;background:var(--line) center/cover no-repeat}
 .card-body{padding:16px;display:flex;flex-direction:column;gap:4px}
 .card .tags{margin-top:8px}
@@ -165,6 +169,16 @@ button{cursor:pointer}
       <span class="step-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F4FA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>
       <span class="step-text"><span class="title-s">2. Adicionar ao ecrã principal</span><span class="annot">O roteiro fica com ícone próprio e atualiza sozinho.</span></span>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="dirSheet" role="dialog" aria-labelledby="dirTitle">
+  <button class="grabber" aria-label="Fechar"></button>
+  <h2 class="title-m" id="dirTitle" style="margin-top:24px">Como chegar</h2>
+  <p class="annot lead" id="dirPlace"></p>
+  <div class="dir-list">
+    <a class="subtle press" id="dirApple" target="_blank" rel="noopener">Apple Maps</a>
+    <a class="subtle press" id="dirGoogle" target="_blank" rel="noopener">Google Maps</a>
   </div>
 </div>
 
@@ -246,7 +260,7 @@ button{cursor:pointer}
     const p = m.place;
     L.popup({ closeButton: false, autoPanPadding: [16, 16], offset: [0, -8], className: 'tip' })
       .setLatLng(m.getLatLng())
-      .setContent('<div class="tip-name">' + esc(p.name) + '</div>' + (p.address ? '<div class="tip-note">' + esc(p.address) + '</div>' : '') + tagsHtml(cat, p.tags))
+      .setContent('<div class="tip-name">' + esc(p.name) + '</div>' + (p.address ? '<div class="tip-note">' + esc(p.address) + '</div>' : '') + tagsHtml(cat, p.tags) + '<button class="pill press" data-dir="' + p.id + '">Como chegar</button>')
       .openOn(map);
     if (fly) map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.8 });
   }
@@ -278,11 +292,23 @@ button{cursor:pointer}
   }
 
   /* ---------- one place (?s=) ---------- */
+  /* Directions (Oct 7): from where the person is now to the place. The maps app starts from the phone's own location.
+     On iPhone it asks which app (Apple Maps or Google Maps); elsewhere Google Maps opens straight away. */
+  const appleDir = p => 'https://maps.apple.com/?daddr=' + p.lat + ',' + p.lng + '&q=' + encodeURIComponent(p.name);
+  const googleDir = p => 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
   function directions(p) {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    return ios ? 'https://maps.apple.com/?daddr=' + p.lat + ',' + p.lng + '&q=' + encodeURIComponent(p.name)
-               : 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
+    if (!ios) { window.open(googleDir(p), '_blank', 'noopener'); return; }
+    document.getElementById('dirPlace').textContent = p.name;
+    document.getElementById('dirApple').href = appleDir(p);
+    document.getElementById('dirGoogle').href = googleDir(p);
+    window.__openSheet('dirSheet');
   }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-dir]'); if (!b || !data) return;
+    e.preventDefault(); e.stopPropagation();
+    const p = data.places.find(x => x.id === b.dataset.dir); if (p) directions(p);
+  }, true);
   function renderSingle(p) {
     const c = catOf(p.category);
     document.getElementById('owner').textContent = data.city + ', por ' + data.owner;
@@ -304,7 +330,7 @@ button{cursor:pointer}
         tagsHtml(c, p.tags) + photos +
       '</section>' +
       '<div style="margin-top:24px;display:flex;flex-direction:column;gap:24px">' +
-        '<a class="pill press" style="height:52px;border-radius:26px;font-size:17px;display:flex;align-items:center;justify-content:center;text-decoration:none" href="' + directions(p) + '" target="_blank" rel="noopener">Como chegar</a>' +
+        '<button class="pill press" style="height:52px;border-radius:26px;font-size:17px;display:flex;align-items:center;justify-content:center;width:100%" data-dir="' + p.id + '">Como chegar</button>' +
         '<a class="pill press" style="height:52px;border-radius:26px;font-size:17px;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--subtle);color:var(--primary)" href="?r=' + encodeURIComponent(SLUG) + '">Ver o roteiro todo</a>' +
       '</div>';
   }
@@ -346,9 +372,9 @@ button{cursor:pointer}
     sections.innerHTML = used.length ? used.map(c => {
       const items = data.places.filter(p => p.category === c.id);
       return '<section><h2 class="title-s sec-title"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</h2><div class="cards">' +
-        items.map(p => '<button class="card press" data-id="' + p.id + '">' +
+        items.map(p => '<div class="card press" role="button" tabindex="0" data-id="' + p.id + '">' +
           (p.photos && p.photos[0] ? '<div class="card-photo" style="background-image:url(\'' + encodeURI(p.photos[0]) + '\')"></div>' : '') +
-          '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.address ? '<span class="annot">' + esc(p.address) + '</span>' : '') + (p.note ? '<p class="text" style="margin:8px 0 0">' + esc(p.note) + '</p>' : '') + tagsHtml(c, p.tags) + '</div></button>').join('') +
+          '<div class="card-body"><span class="title-s">' + esc(p.name) + '</span>' + (p.address ? '<span class="annot">' + esc(p.address) + '</span>' : '') + (p.note ? '<p class="text" style="margin:8px 0 0">' + esc(p.note) + '</p>' : '') + tagsHtml(c, p.tags) + '<button class="subtle press" data-dir="' + p.id + '">Como chegar</button></div></div>').join('') +
         '</div></section>';
     }).join('') : '<p class="annot empty">Ainda sem sítios. Volta mais tarde.</p>';
     sections.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
@@ -400,31 +426,35 @@ button{cursor:pointer}
   });
   window.addEventListener('appinstalled', () => hideCard(true));
 
-  const overlay = document.getElementById('overlay'), sheet = document.getElementById('sheet');
-  const openSheet = () => { overlay.classList.add('open'); sheet.classList.add('open'); };
-  const closeSheet = () => { overlay.classList.remove('open'); sheet.classList.remove('open'); };
+  const overlay = document.getElementById('overlay');
+  const openSheet = (id) => { overlay.classList.add('open'); document.getElementById(id || 'sheet').classList.add('open'); };
+  const closeSheet = () => { overlay.classList.remove('open'); document.querySelectorAll('.sheet.open').forEach(s => s.classList.remove('open')); };
+  window.__openSheet = openSheet;
   document.getElementById('installBtn').addEventListener('click', async () => {
     if (deferred) {
       deferred.prompt();
       const choice = await deferred.userChoice;
       deferred = null;
       if (choice.outcome === 'accepted') hideCard(true);
-    } else if (isIOS) openSheet();
+    } else if (isIOS) openSheet('sheet');
   });
   document.getElementById('installClose').addEventListener('click', () => hideCard(true));
   overlay.addEventListener('click', closeSheet);
-  document.getElementById('grabber').addEventListener('click', closeSheet);
-  let y0 = null;
-  sheet.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
-  sheet.addEventListener('touchmove', e => {
-    if (y0 == null) return;
-    const dy = Math.max(0, e.touches[0].clientY - y0);
-    sheet.style.transition = 'none'; sheet.style.transform = 'translateY(' + dy + 'px)';
-  }, { passive: true });
-  sheet.addEventListener('touchend', e => {
-    const dy = e.changedTouches[0].clientY - (y0 || 0); y0 = null;
-    sheet.style.transition = ''; sheet.style.transform = '';
-    if (dy > 80) closeSheet();
+  document.querySelectorAll('.sheet').forEach(sheet => {
+    sheet.querySelector('.grabber').addEventListener('click', closeSheet);
+    sheet.querySelectorAll('.dir-list a').forEach(a => a.addEventListener('click', () => setTimeout(closeSheet, 300)));
+    let y0 = null;
+    sheet.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
+    sheet.addEventListener('touchmove', e => {
+      if (y0 == null) return;
+      const dy = Math.max(0, e.touches[0].clientY - y0);
+      sheet.style.transition = 'none'; sheet.style.transform = 'translateY(' + dy + 'px)';
+    }, { passive: true });
+    sheet.addEventListener('touchend', e => {
+      const dy = e.changedTouches[0].clientY - (y0 || 0); y0 = null;
+      sheet.style.transition = ''; sheet.style.transform = '';
+      if (dy > 80) closeSheet();
+    });
   });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -747,9 +747,25 @@ function rtTiles(opts) {
      iOS asks once with its own small Paste bubble. */
   $('pasteLink').onclick = async e => {
     e.preventDefault();
+    /* The Maps "Copiar" puts a link (not plain text) on the clipboard, which readText() returns as empty on iPhone,
+       so every kind of item is read: link, plain text and web text. */
     let t = '';
-    try { t = await navigator.clipboard.readText(); } catch (err) { toast('O telefone não deixou ler o que copiaste. Experimenta outra vez.'); return; }
-    if (!t) { toast('Não há nada copiado.'); return; }
+    try {
+      if (navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const it of items) {
+          for (const type of ['text/uri-list', 'text/plain', 'text/html']) {
+            if (!it.types.includes(type)) continue;
+            const v = await (await it.getType(type)).text();
+            const val = type === 'text/html' ? ((v.match(/href="([^"]+)"/) || [])[1] || v.replace(/<[^>]+>/g, ' ')) : v;
+            if (val && val.trim()) { t = (t ? t + '\n' : '') + val.trim(); }
+          }
+          if (t) break;
+        }
+      }
+      if (!t) t = await navigator.clipboard.readText();
+    } catch (err) { toast('O telefone não deixou ler. Toca e mantém no campo Sítio e escolhe Colar.'); return; }
+    if (!t) { toast('Não há nada copiado. No Mapas, toca em Partilhar e depois Copiar.'); return; }
     $('placeIn').value = t.trim();
     if (parseMapsLink(t)) applyPasted(); else $('placeIn').dispatchEvent(new Event('input'));
   };

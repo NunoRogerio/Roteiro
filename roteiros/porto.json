@@ -143,8 +143,22 @@
       "lat": 41.1492227,
       "lng": -8.6167272,
       "photos": []
+    },
+    {
+      "id": "muxkgfjv0dg9",
+      "name": "Sol e Sombra",
+      "category": "comer",
+      "tags": [
+        "Almoço",
+        "Jantar"
+      ],
+      "note": "Bifanas pica-pau e moelinhas ",
+      "address": "Rua de Passos Manuel. Centro Histórico do Porto.",
+      "lat": 41.1465863,
+      "lng": -8.6043177,
+      "photos": []
     }
   ],
   "slug": "porto",
-  "updated": "2026-10-07T03:47:01.581Z"
+  "updated": "2026-10-07T03:47:58.232Z"
 }

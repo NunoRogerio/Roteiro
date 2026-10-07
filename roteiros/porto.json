@@ -23,6 +23,20 @@
       "ink": "#145E63"
     },
     {
+      "id": "banhos",
+      "name": "Banhos",
+      "color": "#2468B8",
+      "tint": "#E1ECF8",
+      "ink": "#1B4F8C"
+    },
+    {
+      "id": "trilhos",
+      "name": "Trilhos",
+      "color": "#7A5A1F",
+      "tint": "#F1EADC",
+      "ink": "#5E4516"
+    },
+    {
       "id": "cultura",
       "name": "Cultura",
       "color": "#2F8A5B",
@@ -53,9 +67,9 @@
         "Lanche",
         "Cafezinho"
       ],
-      "lat": 41.1468,
-      "lng": -8.6067,
-      "address": "Rua de Santa Catarina.",
+      "lat": 38.9946071642165,
+      "lng": -9.081945849430278,
+      "address": "Estrada da Fresca (EN 248). Malafaia.",
       "note": "",
       "photos": []
     },
@@ -160,5 +174,5 @@
     }
   ],
   "slug": "porto",
-  "updated": "2026-10-07T04:07:21.771Z"
+  "updated": "2026-10-07T12:44:02.965Z"
 }

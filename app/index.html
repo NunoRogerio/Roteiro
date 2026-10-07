@@ -715,7 +715,47 @@ function rtTiles(opts) {
     });
     return res.slice(0, 6);
   }
+  /* Search in the phone's maps, no key (Oct 7). The app can't search Google itself (Google blocks it without a key),
+     so it opens Apple Maps on iPhone or Google Maps elsewhere with the same words, the user shares the place,
+     copies the link and pastes it in the Sítio field: name, address and position come from the link. */
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const mapsSearchUrl = q => isIOS ? 'https://maps.apple.com/?q=' + encodeURIComponent(q) : 'https://www.google.com/maps/search/' + encodeURIComponent(q);
+  function parseMapsLink(text) {
+    const m = (text || '').match(/https?:\/\/\S+/);
+    if (!m) return null;
+    let u; try { u = new URL(m[0]); } catch (e) { return null; }
+    const before = text.slice(0, m.index).trim().split('\n')[0].trim();
+    const p = u.searchParams, host = u.hostname;
+    const num = s => { const x = (s || '').split(',').map(Number); return x.length === 2 && x.every(isFinite) ? x : null; };
+    if (/maps\.apple(\.com)?$/.test(host)) {
+      const ll = num(p.get('coordinate')) || num(p.get('ll')) || num(p.get('sll'));
+      const name = p.get('name') || p.get('q') || before;
+      return ll ? { name, address: p.get('address') || '', lat: ll[0], lng: ll[1] } : { short: true };
+    }
+    if (/google\./.test(host) || /goo\.gl$/.test(host)) {
+      const raw = decodeURIComponent(u.href);
+      const d = raw.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/), at = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/), qq = num(p.get('q') || p.get('query'));
+      const ll = d ? [+d[1], +d[2]] : at ? [+at[1], +at[2]] : qq;
+      const nm = (raw.match(/\/place\/([^/]+)/) || [])[1];
+      if (ll) return { name: (nm ? nm.replace(/\+/g, ' ') : before), address: '', lat: ll[0], lng: ll[1] };
+      return { short: true };
+    }
+    return null;
+  }
+  $('placeIn').addEventListener('paste', () => setTimeout(() => {
+    const got = parseMapsLink($('placeIn').value);
+    if (!got) return;
+    clearTimeout(searchTimer); $('results').hidden = true;
+    if (got.short) { $('placeIn').value = draft.name = ''; validate(); toast('Este link não traz a posição. Partilha a partir do Apple Maps ou copia o endereço completo do Google Maps.'); return; }
+    draft.name = (got.name || '').trim(); $('placeIn').value = draft.name;
+    draft.address = got.address ? dot(got.address.split(',').slice(0, 2).join('.').trim()) : '';
+    setPin(got.lat, got.lng, true);
+    if (!draft.address) reverse(got.lat, got.lng);
+    validate(); toast('Sítio encontrado.');
+  }, 0));
+
   $('placeIn').oninput = () => {
+    if (/https?:\/\//.test($('placeIn').value)) return;
     draft.name = $('placeIn').value; validate();
     clearTimeout(searchTimer);
     const q = draft.name.trim();
@@ -726,7 +766,8 @@ function rtTiles(opts) {
       $('results').innerHTML = res.length ? res.map((r, i) =>
         '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name) + '</span>' + (r.area ? '<span class="annot">' + esc(r.area) + '</span>' : '') + '</button>').join('') +
         (res[0].google ? '<div class="result"><span class="annot" style="font-size:13px">Google Maps</span></div>' : '')
-        :'<div class="result"><span class="annot">Não encontrei. Usa onde estás ou marca no mapa.</span></div>';
+        :'<div class="result"><span class="annot">Não encontrei aqui.</span></div>';
+      $('results').innerHTML += '<a class="result" href="' + mapsSearchUrl(q) + '" target="_blank" rel="noopener" style="text-decoration:none"><span class="title-s" style="color:var(--primary)">Procurar no ' + (isIOS ? 'Apple Maps' : 'Google Maps') + '</span><span class="annot">Lá, toca em Partilhar e Copiar. Depois cola o link aqui em Sítio.</span></a>';
       $('results').hidden = false;
       $('results').querySelectorAll('button.result').forEach(b => b.onclick = () => {
         const r = res[+b.dataset.i];

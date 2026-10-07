@@ -1,5 +1,5 @@
 // Network first: the roteiro is always the live version; the cache is only for when there is no network.
-const CACHE = 'roteiros-v2';
+const CACHE = 'roteiros-v3';
 const SHELL = ['./', 'index.html', 'roteiro.json', 'manifest.json', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => {
@@ -17,8 +17,10 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
+  // Same-origin pages, scripts and data skip the browser's HTTP cache, so a new version shows on the next open.
+  const fresh = sameOrigin ? new Request(req, { cache: 'no-store' }) : req;
   e.respondWith(
-    fetch(req)
+    fetch(fresh)
       .then(res => {
         if (sameOrigin && res.ok) {
           const copy = res.clone();

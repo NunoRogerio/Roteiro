@@ -406,6 +406,26 @@ button{cursor:pointer}
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(false); });
   setInterval(() => { if (document.visibilityState === 'visible') load(false); }, 120000);
 
+
+  /* ---------- updates (Oct 7) ----------
+     iOS keeps an installed web app alive in the background, so returning to it never reloads the page.
+     On every return the app asks GitHub Pages whether this page changed (ETag) and, if so, reloads itself,
+     unless the install sheet is open. */
+  (function autoUpdate() {
+    let tag = null;
+    const check = async () => {
+      try {
+        const r = await fetch(location.pathname + '?u=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        const t = r.headers.get('etag') || r.headers.get('last-modified');
+        if (!t) return;
+        if (tag && t !== tag && !document.querySelector('.sheet.open')) { location.reload(); return; }
+        tag = t;
+      } catch (e) {}
+    };
+    check();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+  })();
+
   /* ---------- install ---------- */
   const card = document.getElementById('install');
   const ua = navigator.userAgent;

@@ -129,8 +129,22 @@
       "lat": 41.1547512,
       "lng": -8.6190119,
       "photos": []
+    },
+    {
+      "id": "muxkftgfd8s5",
+      "name": "Adega do Carregal",
+      "category": "comer",
+      "tags": [
+        "Almoço",
+        "Jantar"
+      ],
+      "note": "",
+      "address": "Travessa do Carregal. Zona Histórica do Porto.",
+      "lat": 41.1492227,
+      "lng": -8.6167272,
+      "photos": []
     }
   ],
   "slug": "porto",
-  "updated": "2026-10-07T03:46:30.452Z"
+  "updated": "2026-10-07T03:47:01.581Z"
 }

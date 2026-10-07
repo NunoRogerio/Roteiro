@@ -24,6 +24,20 @@
       "ink": "#145E63"
     },
     {
+      "id": "banhos",
+      "name": "Banhos",
+      "color": "#2468B8",
+      "tint": "#E1ECF8",
+      "ink": "#1B4F8C"
+    },
+    {
+      "id": "trilhos",
+      "name": "Trilhos",
+      "color": "#7A5A1F",
+      "tint": "#F1EADC",
+      "ink": "#5E4516"
+    },
+    {
       "id": "cultura",
       "name": "Cultura",
       "color": "#2F8A5B",
@@ -45,6 +59,18 @@
       "ink": "#2A3062"
     }
   ],
-  "places": [],
-  "updated": "2026-10-07T04:08:54.806Z"
+  "places": [
+    {
+      "id": "muxt07bh3ylg",
+      "name": "Lagoas Park Hotel",
+      "category": "comer",
+      "tags": [],
+      "note": "https://maps.apple/p/tVzKHwZ0Tf_r2P",
+      "address": "Rua das Lagoas Pequenas.",
+      "lat": 38.71489300685955,
+      "lng": -9.309374454551824,
+      "photos": []
+    }
+  ],
+  "updated": "2026-10-07T07:47:58.196Z"
 }

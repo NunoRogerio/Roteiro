@@ -118,8 +118,19 @@
       "photos": [
         "photos/porto/mux85ocquqg2-mux86kpi74q2.jpg"
       ]
+    },
+    {
+      "id": "muxkezr7rajv",
+      "name": "Candelabro",
+      "category": "noite",
+      "tags": [],
+      "note": "",
+      "address": "Rua de Cedofeita. Cedofeita.",
+      "lat": 41.1547512,
+      "lng": -8.6190119,
+      "photos": []
     }
   ],
   "slug": "porto",
-  "updated": "2026-10-06T22:03:29.652Z"
+  "updated": "2026-10-07T03:46:30.452Z"
 }

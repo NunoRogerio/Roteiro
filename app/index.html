@@ -268,6 +268,17 @@ textarea.box{min-height:88px;resize:none;border:none;outline:none;border-radius:
     <label class="field"><span class="label">Nome</span><span class="input"><input id="invName" type="text" placeholder="Susana"></span></label>
     <label class="field"><span class="label">Chave</span><span class="input"><input id="invKey" type="password" autocomplete="off" placeholder="github_pat_…"></span></label>
     <div style="margin-top:24px;display:flex;gap:16px"><button class="btn primary press" id="invBtn" disabled>Enviar convite</button></div>
+    <h2 class="title-m" style="margin-top:56px">Pesquisa Google</h2>
+    <p class="text sub" id="gStatus">Encontra qualquer sítio como no Google Maps. Basta fazer uma vez: serve todos os telemóveis e convidados.</p>
+    <ol class="steps">
+      <li>Em <a href="https://console.cloud.google.com/apis/library/places.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> cria um projeto e ativa Places API (New).</li>
+      <li>Em Credentials, Create credentials, API key.</li>
+      <li>Em Application restrictions escolhe Websites e junta nunorogerio.github.io/*.</li>
+      <li>Em API restrictions escolhe só Places API (New). Copia a chave e cola-a aqui.</li>
+    </ol>
+    <label class="field"><span class="label">Chave Google</span><span class="input"><input id="gKeyIn" type="password" autocomplete="off" placeholder="AIza…"></span></label>
+    <p class="error" id="gErr" hidden></p>
+    <div style="margin-top:24px;display:flex;gap:16px"><button class="btn primary press" id="gSave" disabled>Guardar chave</button></div>
   </div>
 </div>
 
@@ -396,6 +407,7 @@ function rtTiles(opts) {
     $('avatar').textContent = initials(owner);
     $('homeLoading').hidden = roteiros.length > 0;
     renderHome();
+    loadConfig();
     try {
       const files = (await gh('/contents/roteiros?ref=' + BRANCH + '&t=' + Date.now(), { cache: 'no-store' })) || [];
       const list = await Promise.all(files.filter(f => f.name.endsWith('.json')).map(async f => {
@@ -432,6 +444,37 @@ function rtTiles(opts) {
   $('saveName').onclick = () => {
     const n = $('nameEdit').value.trim(); if (!n) return;
     owner = n; store.set('roteiros-name', n); $('avatar').textContent = initials(n); closeSheets(); toast('Guardado.');
+  };
+  /* Google search key (Oct 7): kept in config.json in the repo, so it works on every phone and for every guest.
+     It is a browser key, locked to nunorogerio.github.io and to Places API only, so it is safe in a public file. */
+  let gKey = store.get('roteiros-gkey') || '', cfg = null;
+  async function loadConfig() {
+    try {
+      cfg = await readJson('config.json');
+      const k = cfg && cfg.data && cfg.data.googlePlacesKey;
+      if (k) { gKey = k; store.set('roteiros-gkey', k); }
+    } catch (e) {}
+    gStatusText();
+  }
+  function gStatusText() {
+    $('gStatus').textContent = gKey ? 'Ligada. A pesquisa encontra sítios como no Google Maps.' : 'Encontra qualquer sítio como no Google Maps. Basta fazer uma vez: serve todos os telemóveis e convidados.';
+  }
+  $('gKeyIn').oninput = () => { $('gSave').disabled = !$('gKeyIn').value.trim(); };
+  $('gSave').onclick = async () => {
+    const k = $('gKeyIn').value.trim(), btn = $('gSave'), err = $('gErr');
+    err.hidden = true; btn.disabled = true; btn.textContent = 'A testar…';
+    const test = await googleSearch('Torre dos Clérigos', 41.15, -8.61, k);
+    if (!test.ok) {
+      err.textContent = test.msg || 'A Google recusou esta chave. Confirma que Places API (New) está ativa e a faturação ligada.';
+      err.hidden = false; btn.textContent = 'Guardar chave'; btn.disabled = false; return;
+    }
+    try {
+      const data = Object.assign({}, cfg && cfg.data, { googlePlacesKey: k });
+      const sha = await putFile('config.json', b64enc(JSON.stringify(data, null, 2)), 'Chave da pesquisa Google', cfg && cfg.sha);
+      cfg = { sha, data };
+    } catch (e) { toast('Guardada só neste telemóvel. Não consegui gravar no GitHub.'); }
+    gKey = k; store.set('roteiros-gkey', k); $('gKeyIn').value = '';
+    btn.textContent = 'Guardar chave'; gStatusText(); toast('Pesquisa Google ligada.');
   };
   $('disconnect').onclick = () => {
     if (!confirm('Desligar este telemóvel do GitHub? Os roteiros continuam guardados.')) return;
@@ -600,9 +643,35 @@ function rtTiles(opts) {
   let here = null;
   const mtKey = () => { let k = ''; try { k = localStorage.getItem('wf-mt-key') || ''; } catch (e) {} return encodeURIComponent(k || 'nXogmRs94P1OvRDMdUN6'); };
   const dot = s => s ? s + '.' : '';
+  /* Google Places Text Search (Oct 7): the same search as Google Maps, any name, shop or restaurant, anywhere.
+     It leans towards the roteiro's city but is never limited to it. */
+  async function googleSearch(q, lat, lng, key) {
+    try {
+      const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key,
+          'X-Goog-FieldMask': 'places.displayName,places.shortFormattedAddress,places.formattedAddress,places.location' },
+        body: JSON.stringify({ textQuery: q, languageCode: 'pt', pageSize: 6,
+          locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } } })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const m = j.error && j.error.message || '';
+        return { ok: false, places: [], msg: /billing/i.test(m) ? 'Falta ligar a faturação ao projeto na Google Cloud.' : /referer|referrer/i.test(m) ? 'A chave não aceita este site. Junta nunorogerio.github.io/* em Websites.' : /not been used|disabled/i.test(m) ? 'Ativa Places API (New) no projeto da chave.' : '' };
+      }
+      return { ok: true, places: (j.places || []).filter(p => p.location).map(p => ({
+        name: p.displayName && p.displayName.text,
+        area: (p.shortFormattedAddress || p.formattedAddress || '').replace(/,\s*/g, '. ').replace(/\.$/, ''),
+        lat: p.location.latitude, lng: p.location.longitude, google: true })) };
+    } catch (e) { return { ok: false, places: [] }; }
+  }
   async function searchPlaces(q) {
     const cc = current && current.data.center;
     const c = cc ? { lat: cc[0], lng: cc[1] } : map.getCenter(), lat = c.lat, lng = c.lng;
+    if (gKey) {
+      const g = await googleSearch(q, lat, lng, gKey);
+      if (g.ok && g.places.length) return g.places.slice(0, 6);
+    }
     const get = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
     const [mt, ph, no] = await Promise.all([
       get('https://api.maptiler.com/geocoding/' + encodeURIComponent(q) + '.json?key=' + mtKey() + '&proximity=' + lng + ',' + lat + '&language=pt&limit=6&fuzzyMatch=true'),
@@ -638,8 +707,9 @@ function rtTiles(opts) {
       const res = await searchPlaces(q);
       if ($('placeIn').value.trim() !== q) return;
       $('results').innerHTML = res.length ? res.map((r, i) =>
-        '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name) + '</span>' + (r.area ? '<span class="annot">' + esc(r.area) + '</span>' : '') + '</button>').join('')
-        : '<div class="result"><span class="annot">Não encontrei. Usa onde estás ou marca no mapa.</span></div>';
+        '<button type="button" class="result" data-i="' + i + '"><span class="title-s">' + esc(r.name) + '</span>' + (r.area ? '<span class="annot">' + esc(r.area) + '</span>' : '') + '</button>').join('') +
+        (res[0].google ? '<div class="result"><span class="annot" style="font-size:13px">Google Maps</span></div>' : '')
+        :'<div class="result"><span class="annot">Não encontrei. Usa onde estás ou marca no mapa.</span></div>';
       $('results').hidden = false;
       $('results').querySelectorAll('button.result').forEach(b => b.onclick = () => {
         const r = res[+b.dataset.i];
